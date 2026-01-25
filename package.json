@@ -1,0 +1,20 @@
+{
+  "name": "chlapp",
+  "version": "1.0.0",
+  "description": "Full-stack habit tracking application",
+  "private": true,
+  "scripts": {
+    "install:all": "cd backend && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && cd ../frontend && npm install",
+    "dev:backend": "cd backend && source venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build"
+  },
+  "keywords": [
+    "habit-tracking",
+    "fastapi",
+    "react",
+    "mongodb"
+  ],
+  "author": "",
+  "license": "MIT"
+}
