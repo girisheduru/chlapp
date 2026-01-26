@@ -951,7 +951,7 @@ const OnboardingMockups = () => {
             <div style={{ height: 1, background: colors.border }} />
             <SummaryRow
               icon="⚡"
-              label="When energy allows"
+              label="When Circumstances Allow"
               value={capacityText || "45 minute pilates class"}
               bg="#E3F2FD"
             />

@@ -197,14 +197,14 @@ const DailyCheckIn = () => {
               selected={selectedAction === 'baseline'}
               onClick={() => setSelectedAction('baseline')}
               emoji="🌱"
-              title="My low-energy version"
+              title="Baseline habit"
               subtitle={userData.baselineHabit}
             />
             <ActionOption
               selected={selectedAction === 'capacity'}
               onClick={() => setSelectedAction('capacity')}
               emoji="⚡"
-              title="My higher-energy version"
+              title="My expanded version"
               subtitle={userData.capacityHabit}
             />
             <ActionOption
