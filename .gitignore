@@ -22,10 +22,13 @@ dist/
 dist-ssr/
 *.local
 
-# Environment variables
+# Environment variables — never check in secrets
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
 
 # IDE
 .vscode/

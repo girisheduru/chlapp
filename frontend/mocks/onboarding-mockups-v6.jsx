@@ -1,93 +1,128 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
-const OnboardingMockups = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [goalInput, setGoalInput] = useState('');
-  const [selectedIdentity, setSelectedIdentity] = useState('');
-  const [selectedFunOptions, setSelectedFunOptions] = useState([]);
-  const [customFun, setCustomFun] = useState('');
-  const [baselineHabit, setBaselineHabit] = useState('');
-  const [customBaselineHabit, setCustomBaselineHabit] = useState('');
-  const [capacityExpression, setCapacityExpression] = useState('');
-  const [customCapacityExpression, setCustomCapacityExpression] = useState('');
-  const [selectedAnchor, setSelectedAnchor] = useState('');
-  const [customAnchor, setCustomAnchor] = useState('');
-  const [selectedEnvironment, setSelectedEnvironment] = useState([]);
-  const [customEnvironment, setCustomEnvironment] = useState('');
-  const [checkInTime, setCheckInTime] = useState('8:00 AM');
+const TOTAL_STEPS = 8;
 
-  const totalSteps = 8;
+const colors = {
+  primary: '#2D5A45',
+  primaryLight: '#4A7C59',
+  background: '#F5F2ED',
+  backgroundDark: '#EDE8E0',
+  card: '#FEFDFB',
+  text: '#3D3229',
+  textMuted: '#6B5D4D',
+  textLight: '#8B7355',
+  border: '#E8E4DF',
+  accent: '#FFF9E6',
+  success: '#4A7C59',
+  successLight: '#E8F5E9',
+};
 
-  const identityOptions = [
-    { id: 'consistent', statement: "I am someone who shows up consistently", emoji: '🎯' },
-    { id: 'body', statement: "I am someone who takes care of my body", emoji: '💪' },
-    { id: 'moves', statement: "I am someone who moves my body regularly", emoji: '🏃' },
-    { id: 'easy', statement: "I am someone who makes exercise easy to stick with", emoji: '✨' },
-    { id: 'intention', statement: "I am someone who trains with intention", emoji: '🧘' },
-  ];
+const fonts = {
+  heading: 'Georgia, serif',
+  body: 'system-ui, -apple-system, sans-serif',
+  mono: 'monospace',
+};
 
-  const funOptions = [
-    { id: 'music', label: 'Music I love', emoji: '🎶' },
-    { id: 'movement', label: 'Movement that feels right', emoji: '🧘' },
-    { id: 'share', label: 'A quick share', emoji: '🤝' },
-    { id: 'comfort', label: 'My cozy setup', emoji: '☕' },
-    { id: 'challenge', label: 'A bit of challenge', emoji: '🏁' },
-    { id: 'aesthetic', label: 'A look or vibe I like', emoji: '✨' },
-  ];
+const identityOptions = [
+  { id: 'consistent', statement: "I am someone who shows up consistently", emoji: '🎯' },
+  { id: 'body', statement: "I am someone who takes care of my body", emoji: '💪' },
+  { id: 'moves', statement: "I am someone who moves my body regularly", emoji: '🏃' },
+  { id: 'easy', statement: "I am someone who makes exercise easy to stick with", emoji: '✨' },
+  { id: 'intention', statement: "I am someone who trains with intention", emoji: '🧘' },
+];
 
-  const baselineHabitOptions = [
-    { id: 'notice', label: 'Pause and notice how my body feels' },
-    { id: 'supportive', label: 'Do one supportive action (stretch, hydrate, rest)' },
-    { id: 'breath', label: 'Take one intentional breath and check posture' },
-  ];
+const funOptions = [
+  { id: 'music', label: 'Music I love', emoji: '🎶' },
+  { id: 'movement', label: 'Movement that feels right', emoji: '🧘' },
+  { id: 'share', label: 'A quick share', emoji: '🤝' },
+  { id: 'comfort', label: 'My cozy setup', emoji: '☕' },
+  { id: 'challenge', label: 'A bit of challenge', emoji: '🏁' },
+  { id: 'aesthetic', label: 'A look or vibe I like', emoji: '✨' },
+];
 
-  const capacityExpressionOptions = [
-    { id: 'pilates', label: '45 minute pilates class' },
-    { id: 'running', label: 'Running 30 minutes on the treadmill' },
-    { id: 'weights', label: 'Weights + cardio' },
-    { id: 'longer', label: 'Staying longer and pushing a bit' },
-  ];
+const baselineHabitOptions = [
+  { id: 'notice', label: 'Pause and notice how my body feels' },
+  { id: 'supportive', label: 'Do one supportive action (stretch, hydrate, rest)' },
+  { id: 'breath', label: 'Take one intentional breath and check posture' },
+];
 
-  const anchorOptions = [
-    { id: 'coffee', label: 'After my morning coffee', emoji: '☕' },
-    { id: 'wakeup', label: 'Right after waking up', emoji: '🌅' },
-    { id: 'breakfast', label: 'After breakfast', emoji: '🍳' },
-    { id: 'lunch', label: 'After eating lunch', emoji: '🍽️' },
-    { id: 'work', label: 'After work', emoji: '💼' },
-    { id: 'dinner', label: 'After eating dinner', emoji: '🍝' },
-    { id: 'tea', label: 'With my evening tea', emoji: '🍵' },
-  ];
+const capacityExpressionOptions = [
+  { id: 'pilates', label: '45 minute pilates class' },
+  { id: 'running', label: 'Running 30 minutes on the treadmill' },
+  { id: 'weights', label: 'Weights + cardio' },
+  { id: 'longer', label: 'Staying longer and pushing a bit' },
+];
 
-  const environmentOptions = [
-    { id: 'bag', label: 'Gym bag packed', emoji: '🎒' },
-    { id: 'shoes', label: 'Shoes visible', emoji: '👟' },
-    { id: 'playlist', label: 'Playlist ready', emoji: '🎧' },
-    { id: 'clothes', label: 'Clothes laid out', emoji: '👕' },
-  ];
+const anchorOptions = [
+  { id: 'coffee', label: 'After my morning coffee', emoji: '☕' },
+  { id: 'wakeup', label: 'Right after waking up', emoji: '🌅' },
+  { id: 'breakfast', label: 'After breakfast', emoji: '🍳' },
+  { id: 'lunch', label: 'After eating lunch', emoji: '🍽️' },
+  { id: 'work', label: 'After work', emoji: '💼' },
+  { id: 'dinner', label: 'After eating dinner', emoji: '🍝' },
+  { id: 'tea', label: 'With my evening tea', emoji: '🍵' },
+];
 
-  const colors = {
-    primary: '#2D5A45',
-    primaryLight: '#4A7C59',
-    background: '#F5F2ED',
-    backgroundDark: '#EDE8E0',
-    card: '#FEFDFB',
-    text: '#3D3229',
-    textMuted: '#6B5D4D',
-    textLight: '#8B7355',
-    border: '#E8E4DF',
-    accent: '#FFF9E6',
-    success: '#4A7C59',
-    successLight: '#E8F5E9',
+const environmentOptions = [
+  { id: 'bag', label: 'Gym bag packed', emoji: '🎒' },
+  { id: 'shoes', label: 'Shoes visible', emoji: '👟' },
+  { id: 'playlist', label: 'Playlist ready', emoji: '🎧' },
+  { id: 'clothes', label: 'Clothes laid out', emoji: '👕' },
+];
+
+// Reusable UI (module-level so step components stay stable)
+const Card = ({ children }) => (
+  <div style={{ background: colors.card, borderRadius: 24, padding: 32, boxShadow: '0 8px 32px rgba(92, 75, 58, 0.08)', border: `1px solid ${colors.border}` }}>
+    {children}
+  </div>
+);
+
+const Button = ({ children, variant = 'primary', onClick, disabled, style = {} }) => {
+  const baseStyle = { padding: '14px 28px', borderRadius: 12, fontSize: 15, fontFamily: fonts.body, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease', border: 'none', opacity: disabled ? 0.5 : 1 };
+  const variants = {
+    primary: { background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%)`, color: colors.card, boxShadow: '0 4px 14px rgba(45, 90, 69, 0.25)' },
+    secondary: { background: 'transparent', color: colors.textMuted, border: `2px solid ${colors.border}` },
+    ghost: { background: 'transparent', color: colors.textLight, padding: '12px 20px' },
+    success: { background: `linear-gradient(135deg, ${colors.success} 0%, #3D6B4F 100%)`, color: colors.card, boxShadow: '0 4px 14px rgba(74, 124, 89, 0.25)' },
   };
+  return <button onClick={onClick} disabled={disabled} style={{ ...baseStyle, ...variants[variant], ...style }}>{children}</button>;
+};
 
-  const fonts = {
-    heading: 'Georgia, serif',
-    body: 'system-ui, -apple-system, sans-serif',
-    mono: 'monospace',
-  };
+const StepHeader = ({ step, title, subtitle }) => (
+  <div style={{ marginBottom: 28 }}>
+    <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 6px 0' }}>Step {step} of {TOTAL_STEPS}</p>
+    <h2 style={{ fontFamily: fonts.heading, fontSize: 26, fontWeight: 600, color: colors.primary, margin: '0 0 8px 0' }}>{title}</h2>
+    <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0 }}>{subtitle}</p>
+  </div>
+);
 
-  // Reusable Components
-  const ProgressBar = () => (
+const Quote = ({ children, author }) => (
+  <div style={{ background: colors.backgroundDark, borderRadius: 12, padding: 20, marginTop: 24, borderLeft: `4px solid ${colors.primaryLight}` }}>
+    <p style={{ fontFamily: fonts.heading, fontStyle: 'italic', fontSize: 14, color: colors.textMuted, margin: 0, lineHeight: 1.6 }}>"{children}"</p>
+    {author && <p style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textLight, margin: '10px 0 0 0' }}>— {author}</p>}
+  </div>
+);
+
+const InfoBox = ({ children, color = 'primary' }) => {
+  const bgColors = { primary: 'linear-gradient(135deg, #F0F7F4 0%, #E8F5E9 100%)', amber: 'linear-gradient(135deg, #FFF9E6 0%, #FFF3CD 100%)', blue: 'linear-gradient(135deg, #EBF5FF 0%, #DBEAFE 100%)' };
+  const borderColors = { primary: colors.primaryLight, amber: '#FFE69C', blue: '#93C5FD' };
+  const textColors = { primary: colors.primary, amber: '#92400E', blue: '#1E40AF' };
+  return (
+    <div style={{ background: bgColors[color], borderRadius: 12, padding: 16, marginBottom: 20, border: `1px solid ${borderColors[color]}` }}>
+      <p style={{ fontFamily: fonts.body, fontSize: 13, color: textColors[color], margin: 0, lineHeight: 1.5 }}>{children}</p>
+    </div>
+  );
+};
+
+const SelectableOption = ({ selected, onClick, children, emoji, disabled }) => (
+  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '16px 18px', borderRadius: 12, border: `2px solid ${selected ? colors.primaryLight : colors.border}`, background: selected ? 'rgba(74, 124, 89, 0.08)' : colors.card, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease', textAlign: 'left', fontFamily: fonts.body, fontSize: 14, color: colors.text }}>
+    {emoji && <span style={{ fontSize: 20 }}>{emoji}</span>}
+    <span style={{ flex: 1 }}>{children}</span>
+    {selected && <span style={{ width: 24, height: 24, borderRadius: '50%', background: colors.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 12 }}>✓</span>}
+  </button>
+);
+
+const ProgressBar = ({ currentStep, totalSteps }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 32 }}>
       {[...Array(totalSteps)].map((_, i) => (
         <div
@@ -107,170 +142,155 @@ const OnboardingMockups = () => {
     </div>
   );
 
-  const Button = ({ children, variant = 'primary', onClick, disabled, style = {} }) => {
-    const baseStyle = {
-      padding: '14px 28px',
-      borderRadius: 12,
-      fontSize: 15,
-      fontFamily: fonts.body,
-      fontWeight: 600,
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      transition: 'all 0.2s ease',
-      border: 'none',
-      opacity: disabled ? 0.5 : 1,
-    };
-
-    const variants = {
-      primary: {
-        background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%)`,
-        color: colors.card,
-        boxShadow: '0 4px 14px rgba(45, 90, 69, 0.25)',
-      },
-      secondary: {
-        background: 'transparent',
-        color: colors.textMuted,
-        border: `2px solid ${colors.border}`,
-      },
-      ghost: {
-        background: 'transparent',
-        color: colors.textLight,
-        padding: '12px 20px',
-      },
-      success: {
-        background: `linear-gradient(135deg, ${colors.success} 0%, #3D6B4F 100%)`,
-        color: colors.card,
-        boxShadow: '0 4px 14px rgba(74, 124, 89, 0.25)',
-      },
-    };
-
-    return (
-      <button onClick={onClick} disabled={disabled} style={{ ...baseStyle, ...variants[variant], ...style }}>
-        {children}
-      </button>
-    );
-  };
-
-  const Card = ({ children }) => (
-    <div
-      style={{
-        background: colors.card,
-        borderRadius: 24,
-        padding: 32,
-        boxShadow: '0 8px 32px rgba(92, 75, 58, 0.08)',
-        border: `1px solid ${colors.border}`,
-      }}
-    >
-      {children}
-    </div>
-  );
-
-  const Quote = ({ children, author }) => (
-    <div
-      style={{
-        background: colors.backgroundDark,
-        borderRadius: 12,
-        padding: 20,
-        marginTop: 24,
-        borderLeft: `4px solid ${colors.primaryLight}`,
-      }}
-    >
-      <p style={{ fontFamily: fonts.heading, fontStyle: 'italic', fontSize: 14, color: colors.textMuted, margin: 0, lineHeight: 1.6 }}>
-        "{children}"
-      </p>
-      {author && (
-        <p style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textLight, margin: '10px 0 0 0' }}>
-          — {author}
-        </p>
-      )}
-    </div>
-  );
-
-  const InfoBox = ({ children, color = 'primary' }) => {
-    const bgColors = {
-      primary: 'linear-gradient(135deg, #F0F7F4 0%, #E8F5E9 100%)',
-      amber: 'linear-gradient(135deg, #FFF9E6 0%, #FFF3CD 100%)',
-      blue: 'linear-gradient(135deg, #EBF5FF 0%, #DBEAFE 100%)',
-    };
-    const borderColors = {
-      primary: colors.primaryLight,
-      amber: '#FFE69C',
-      blue: '#93C5FD',
-    };
-    const textColors = {
-      primary: colors.primary,
-      amber: '#92400E',
-      blue: '#1E40AF',
-    };
-    return (
-      <div
-        style={{
-          background: bgColors[color],
-          borderRadius: 12,
-          padding: 16,
-          marginBottom: 20,
-          border: `1px solid ${borderColors[color]}`,
-        }}
-      >
-        <p style={{ fontFamily: fonts.body, fontSize: 13, color: textColors[color], margin: 0, lineHeight: 1.5 }}>
-          {children}
-        </p>
+// Step components at module level so inputs keep focus (no remount on parent re-render)
+const Step1Component = React.memo(({ goalInput, onGoalInputChange, onGoalSelect, onContinue }) => {
+  const exampleGoals = ['Eat healthier', 'Reduce stress', 'Get more sleep'];
+  return (
+    <Card>
+      <div style={{ textAlign: 'center', marginBottom: 36 }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 32 }}>🌱</div>
+        <h1 style={{ fontFamily: fonts.heading, fontSize: 28, fontWeight: 600, color: colors.primary, margin: '0 0 10px 0' }}>Welcome</h1>
+        <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0 }}>Let's build something that lasts.</p>
       </div>
-    );
-  };
-
-  const SelectableOption = ({ selected, onClick, children, emoji, disabled }) => (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        width: '100%',
-        padding: '14px 16px',
-        borderRadius: 10,
-        border: `2px solid ${selected ? colors.primaryLight : colors.border}`,
-        background: selected ? 'rgba(74, 124, 89, 0.08)' : colors.card,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'all 0.2s ease',
-        textAlign: 'left',
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
-      {emoji && <span style={{ fontSize: 18 }}>{emoji}</span>}
-      <span style={{ fontFamily: fonts.body, fontSize: 14, color: colors.text, flex: 1 }}>{children}</span>
-      {selected && (
-        <span
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: '50%',
-            background: colors.primaryLight,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: 11,
-          }}
-        >
-          ✓
-        </span>
-      )}
-    </button>
+      <div style={{ marginBottom: 28 }}>
+        <label style={{ display: 'block', fontFamily: fonts.body, fontSize: 16, fontWeight: 600, color: colors.text, marginBottom: 12 }}>What's something you'd like to work on right now?</label>
+        <input type="text" value={goalInput} onChange={(e) => onGoalInputChange(e.target.value)} placeholder="Type your goal here..." style={{ width: '100%', padding: '16px 18px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 15, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }} />
+        <div style={{ marginTop: 16 }}>
+          <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, marginBottom: 10 }}>Some ideas to get you started:</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{exampleGoals.map((goal) => <button key={goal} onClick={() => onGoalSelect(goal)} style={{ padding: '8px 14px', borderRadius: 20, border: `1px solid ${colors.border}`, background: goalInput === goal ? 'rgba(74, 124, 89, 0.08)' : colors.backgroundDark, fontFamily: fonts.body, fontSize: 13, color: colors.textMuted, cursor: 'pointer', transition: 'all 0.2s ease' }}>{goal}</button>)}</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}><Button onClick={onContinue} disabled={!goalInput.trim()}>Continue →</Button></div>
+    </Card>
   );
+});
 
-  const StepHeader = ({ step, title, subtitle }) => (
-    <div style={{ marginBottom: 28 }}>
-      <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 6px 0' }}>
-        Step {step} of {totalSteps}
-      </p>
-      <h2 style={{ fontFamily: fonts.heading, fontSize: 26, fontWeight: 600, color: colors.primary, margin: '0 0 8px 0' }}>{title}</h2>
-      <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0 }}>{subtitle}</p>
-    </div>
+const Step2Component = React.memo(({ selectedIdentity, onSelectIdentity, onBack, onContinue }) => (
+  <Card>
+    <StepHeader step={2} title="As you work on this, who do you want to become?" subtitle="Real change starts with identity. Choose the statement that resonates most." />
+    <InfoBox color="primary">This helps us shape habits that fit you, not just the goal.</InfoBox>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>{identityOptions.map((option) => <button key={option.id} onClick={() => onSelectIdentity(option.id)} style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '18px 20px', borderRadius: 12, border: `2px solid ${selectedIdentity === option.id ? colors.primaryLight : colors.border}`, background: selectedIdentity === option.id ? 'rgba(74, 124, 89, 0.08)' : colors.card, cursor: 'pointer', transition: 'all 0.2s ease', textAlign: 'left' }}><span style={{ fontSize: 24 }}>{option.emoji}</span><span style={{ fontFamily: fonts.heading, fontSize: 16, color: colors.text, flex: 1, lineHeight: 1.4 }}>"{option.statement}"</span>{selectedIdentity === option.id && <span style={{ width: 24, height: 24, borderRadius: '50%', background: colors.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 12, flexShrink: 0 }}>✓</span>}</button>)}</div>
+    <Quote>Every action you take is a vote for the type of person you wish to become.</Quote>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28, gap: 12 }}><Button variant="secondary" onClick={onBack}>← Back</Button><Button onClick={onContinue} disabled={!selectedIdentity}>This is me →</Button></div>
+  </Card>
+));
+
+const Step3Component = React.memo(({ customFun, onCustomFunChange, selectedFunOptions, onToggleFunOption, onBack, onContinue }) => (
+  <Card>
+    <StepHeader step={3} title="What could we add that makes this habit more enjoyable for you?" subtitle="Pick what naturally energizes you and lifts your spirits." />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>{funOptions.map((option) => <button key={option.id} onClick={() => onToggleFunOption(option.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 12px', borderRadius: 12, border: `2px solid ${selectedFunOptions.includes(option.id) ? colors.primaryLight : colors.border}`, background: selectedFunOptions.includes(option.id) ? 'rgba(74, 124, 89, 0.08)' : colors.card, cursor: 'pointer', transition: 'all 0.2s ease', textAlign: 'center' }}><span style={{ fontSize: 24 }}>{option.emoji}</span><span style={{ fontFamily: fonts.body, fontSize: 12, color: colors.text, lineHeight: 1.3 }}>{option.label}</span></button>)}</div>
+    <div style={{ marginBottom: 20 }}><label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or add your own:</label><input type="text" value={customFun} onChange={(e) => onCustomFunChange(e.target.value)} placeholder="What makes things fun for you?" style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }} /></div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}><Button variant="secondary" onClick={onBack}>← Back</Button><Button onClick={onContinue} disabled={selectedFunOptions.length === 0 && !customFun.trim()}>Continue →</Button></div>
+  </Card>
+));
+
+const Step4Component = React.memo(({ customBaselineHabit, onCustomBaselineHabitChange, baselineHabit, onSelectBaseline, onClearBaselinePreset, onBack, onContinue }) => (
+  <Card>
+    <StepHeader step={4} title="What habit counts on low-energy days?" subtitle="" />
+    <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>On busy or low-energy days, this is the smallest action that still means: "I'm this kind of person." It should be easy to start and easy to finish — something you could finish even on a hard day. (Think: 2-minute guideline, if possible)</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>{baselineHabitOptions.map((option) => <SelectableOption key={option.id} selected={baselineHabit === option.id && !customBaselineHabit} onClick={() => { onSelectBaseline(option.id); onCustomBaselineHabitChange(''); }}>{option.label}</SelectableOption>)}</div>
+    <div style={{ marginBottom: 20 }}><label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or write your own:</label><input type="text" value={customBaselineHabit} onChange={(e) => { onCustomBaselineHabitChange(e.target.value); if (e.target.value) onClearBaselinePreset(); }} placeholder="The smallest action that counts..." style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }} /></div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}><Button variant="secondary" onClick={onBack}>← Back</Button><Button onClick={onContinue} disabled={(!baselineHabit && !customBaselineHabit.trim())}>Continue →</Button></div>
+  </Card>
+));
+
+const Step5Component = React.memo(({ customCapacityExpression, onCustomCapacityExpressionChange, capacityExpression, onSelectCapacity, onClearCapacityPreset, onBack, onContinue }) => (
+  <Card>
+    <StepHeader step={5} title="When you have more energy, how might this habit show up?" subtitle="" />
+    <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>This isn't a goal or expectation. It's just how the same identity can express itself when you have more capacity.</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>{capacityExpressionOptions.map((option) => <SelectableOption key={option.id} selected={capacityExpression === option.id && !customCapacityExpression} onClick={() => { onSelectCapacity(option.id); onCustomCapacityExpressionChange(''); }}>{option.label}</SelectableOption>)}</div>
+    <div style={{ marginBottom: 20 }}><label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or write your own:</label><input type="text" value={customCapacityExpression} onChange={(e) => { onCustomCapacityExpressionChange(e.target.value); if (e.target.value) onClearCapacityPreset(); }} placeholder="When I have more energy, I..." style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }} /></div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}><Button variant="secondary" onClick={onBack}>← Back</Button><Button onClick={onContinue} disabled={(!capacityExpression && !customCapacityExpression.trim())}>Continue →</Button></div>
+  </Card>
+));
+
+const Step6Component = React.memo(({ customAnchor, onCustomAnchorChange, selectedAnchor, onSelectAnchor, onClearAnchorPreset, onBack, onContinue }) => {
+  const selectedAnchorObj = anchorOptions.find((o) => o.id === selectedAnchor);
+  const triggerText = customAnchor || (selectedAnchorObj ? selectedAnchorObj.label : '...');
+  return (
+    <Card>
+      <StepHeader step={6} title="Habit Stacking — Attach it to your life" subtitle="Anchor it to something you already do." />
+      <InfoBox color="blue"><strong>Why this helps:</strong> Attaching a new habit to something you already do gives it a natural place in your day.</InfoBox>
+      <div style={{ background: colors.text, borderRadius: 12, padding: 16, marginBottom: 20 }}><p style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 8px 0' }}>The habit stack formula:</p><p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.card, margin: 0 }}>"When <span style={{ color: '#93C5FD' }}>[cue]</span>, I will <span style={{ color: '#86EFAC' }}>[new habit]</span>."</p></div>
+      <div style={{ marginBottom: 16 }}><p style={{ fontFamily: fonts.body, fontSize: 14, fontWeight: 600, color: colors.text, marginBottom: 12 }}>Choose your cue:</p><div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{anchorOptions.map((option) => <SelectableOption key={option.id} selected={selectedAnchor === option.id && !customAnchor} onClick={() => { onSelectAnchor(option.id); onCustomAnchorChange(''); }} emoji={option.emoji}>{option.label}</SelectableOption>)}</div></div>
+      <div style={{ marginBottom: 20 }}><label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or create your own cue:</label><input type="text" value={customAnchor} onChange={(e) => { onCustomAnchorChange(e.target.value); if (e.target.value) onClearAnchorPreset(); }} placeholder="After I..." style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }} /></div>
+      {(selectedAnchor || customAnchor) && <div style={{ background: 'linear-gradient(135deg, #F0F7F4 0%, #E8F5E9 100%)', borderRadius: 12, padding: 20, textAlign: 'center', marginBottom: 20 }}><p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.primaryLight, margin: '0 0 10px 0' }}>Your habit stack</p><p style={{ fontFamily: fonts.heading, fontSize: 16, color: colors.primary, margin: 0, lineHeight: 1.6 }}>"{triggerText}, I will show up for my body."</p></div>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}><Button variant="secondary" onClick={onBack}>← Back</Button><Button onClick={onContinue} disabled={(!selectedAnchor && !customAnchor)}>Lock in my cue →</Button></div>
+    </Card>
   );
+});
 
-  // Step 1: Welcome
-  const Step1 = () => {
+const Step7Component = React.memo(({ customEnvironment, onCustomEnvironmentChange, selectedEnvironment, onToggleEnvironment, onBack, onContinue }) => {
+  const maxPresetsAllowed = customEnvironment.trim() ? 1 : 2;
+  return (
+    <Card>
+      <StepHeader step={7} title="Make It Obvious" subtitle="Design your environment. Make your habit the path of least resistance. Pick up to 2, or add your own." />
+      <InfoBox color="primary"><strong>The secret:</strong> Environment design quietly does most of the work.</InfoBox>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>{environmentOptions.map((option) => { const isSelected = selectedEnvironment.includes(option.id); const isDisabled = !isSelected && selectedEnvironment.length >= maxPresetsAllowed; return <button key={option.id} onClick={() => onToggleEnvironment(option.id)} disabled={isDisabled} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '16px 18px', borderRadius: 12, border: `2px solid ${isSelected ? colors.primaryLight : colors.border}`, background: isSelected ? 'rgba(74, 124, 89, 0.08)' : colors.card, cursor: isDisabled ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease', textAlign: 'left', opacity: isDisabled ? 0.5 : 1 }}><span style={{ fontSize: 20 }}>{option.emoji}</span><span style={{ fontFamily: fonts.body, fontSize: 14, fontWeight: 500, color: colors.text, flex: 1 }}>{option.label}</span>{isSelected && <span style={{ width: 20, height: 20, borderRadius: '50%', background: colors.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11 }}>✓</span>}</button>; })}</div>
+      <div style={{ marginBottom: 20 }}><label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or add your own:</label><input type="text" value={customEnvironment} onChange={(e) => onCustomEnvironmentChange(e.target.value)} placeholder="What would make it easier?" style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }} /></div>
+      <p style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textLight, textAlign: 'center', marginBottom: 20 }}>You can add more later. Start simple.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}><Button variant="secondary" onClick={onBack}>← Back</Button><Button onClick={onContinue} disabled={(selectedEnvironment.length === 0 && !customEnvironment.trim())}>I'm ready →</Button></div>
+    </Card>
+  );
+});
+
+const Step8Component = React.memo(({ selectedIdentity, selectedAnchor, customAnchor, baselineHabit, customBaselineHabit, capacityExpression, customCapacityExpression, selectedEnvironment, customEnvironment, selectedFunOptions, customFun, checkInTime, onCheckInTimeChange, onBack }) => {
+  const selectedIdentityObj = identityOptions.find((o) => o.id === selectedIdentity);
+  const baselineText = customBaselineHabit || (baselineHabitOptions.find((o) => o.id === baselineHabit)?.label || '');
+  const capacityText = customCapacityExpression || (capacityExpressionOptions.find((o) => o.id === capacityExpression)?.label || '');
+  const triggerText = customAnchor || (anchorOptions.find((o) => o.id === selectedAnchor)?.label || 'your chosen trigger');
+  const envText = [...selectedEnvironment.map(id => environmentOptions.find(o => o.id === id)?.label), customEnvironment].filter(Boolean).join(', ');
+  const enjoymentParts = []; if (selectedFunOptions.includes('music')) enjoymentParts.push('music I love'); if (selectedFunOptions.includes('share')) enjoymentParts.push('a quick share when done'); if (selectedFunOptions.includes('movement')) enjoymentParts.push('movement that feels right'); if (selectedFunOptions.includes('comfort')) enjoymentParts.push('my cozy setup'); if (selectedFunOptions.includes('challenge')) enjoymentParts.push('a bit of challenge'); if (selectedFunOptions.includes('aesthetic')) enjoymentParts.push('a look or vibe I like'); if (customFun) enjoymentParts.push(customFun);
+  const enjoymentText = enjoymentParts.length > 0 ? `With ${enjoymentParts.slice(0, 2).join(', and ')}` : 'With elements that bring you joy';
+  const SummaryRow = ({ icon, label, value, bg }) => (<div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}><div style={{ width: 36, height: 36, borderRadius: 8, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{icon}</div><div><p style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textLight, margin: '0 0 3px 0', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</p><p style={{ fontFamily: fonts.body, fontSize: 14, fontWeight: 600, color: colors.text, margin: 0 }}>{value}</p></div></div>);
+  return (
+    <Card>
+      <div style={{ textAlign: 'center', marginBottom: 28 }}><div style={{ width: 68, height: 68, borderRadius: '50%', background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', fontSize: 30, boxShadow: '0 8px 24px rgba(45, 90, 69, 0.3)' }}>✨</div><h2 style={{ fontFamily: fonts.heading, fontSize: 24, fontWeight: 600, color: colors.primary, margin: '0 0 6px 0' }}>Your Habit Plan</h2><p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, margin: 0 }}>Here's everything we built together.</p></div>
+      <div style={{ background: colors.background, borderRadius: 16, padding: 22, marginBottom: 20 }}><div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}><SummaryRow icon="🪪" label="The identity you're forming" value={`"${selectedIdentityObj?.statement || "I am someone who takes care of my body"}"`} bg="#E8F5E9" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="🎯" label="Baseline habit" value={baselineText || "Pause and notice how my body feels"} bg="#FFF3CD" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="⚡" label="When Circumstances Allow" value={capacityText || "45 minute pilates class"} bg="#E3F2FD" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="🔗" label="Cue" value={triggerText} bg="#FCE4EC" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="🎵" label="Enjoyment" value={enjoymentText} bg="#FFF9E6" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="👁️" label="Environment Support" value={envText || 'Gym bag packed, Shoes visible'} bg="#F3E5F5" /></div></div>
+      <div style={{ background: colors.card, borderRadius: 10, padding: 16, border: `1px solid ${colors.border}`, marginBottom: 20 }}><p style={{ fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.text, margin: '0 0 10px 0' }}>When should we check in with you?</p><select value={checkInTime} onChange={(e) => onCheckInTimeChange(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, cursor: 'pointer' }}><option>6:00 AM</option><option>7:00 AM</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>12:00 PM</option><option>6:00 PM</option><option>8:00 PM</option></select></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}><Button variant="secondary" onClick={onBack}>← Back</Button><Button style={{ padding: '16px 36px', fontSize: 16 }}>Start My Journey →</Button></div>
+    </Card>
+  );
+});
+
+const OnboardingMockups = () => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [goalInput, setGoalInput] = useState('');
+  const [selectedIdentity, setSelectedIdentity] = useState('');
+  const [selectedFunOptions, setSelectedFunOptions] = useState([]);
+  const [customFun, setCustomFun] = useState('');
+  const [baselineHabit, setBaselineHabit] = useState('');
+  const [customBaselineHabit, setCustomBaselineHabit] = useState('');
+  const [capacityExpression, setCapacityExpression] = useState('');
+  const [customCapacityExpression, setCustomCapacityExpression] = useState('');
+  const [selectedAnchor, setSelectedAnchor] = useState('');
+  const [customAnchor, setCustomAnchor] = useState('');
+  const [selectedEnvironment, setSelectedEnvironment] = useState([]);
+  const [customEnvironment, setCustomEnvironment] = useState('');
+  const [checkInTime, setCheckInTime] = useState('8:00 AM');
+
+  const onGoalInputChange = useCallback((v) => setGoalInput(v), []);
+  const onGoalSelect = useCallback((goal) => setGoalInput(goal), []);
+  const toStep2 = useCallback(() => setCurrentStep(2), []);
+  const toStep3 = useCallback(() => setCurrentStep(3), []);
+  const toStep4 = useCallback(() => setCurrentStep(4), []);
+  const toStep5 = useCallback(() => setCurrentStep(5), []);
+  const toStep6 = useCallback(() => setCurrentStep(6), []);
+  const toStep7 = useCallback(() => setCurrentStep(7), []);
+  const toStep8 = useCallback(() => setCurrentStep(8), []);
+  const onBack1 = useCallback(() => setCurrentStep(1), []);
+  const onBack2 = useCallback(() => setCurrentStep(2), []);
+  const onBack3 = useCallback(() => setCurrentStep(3), []);
+  const onBack4 = useCallback(() => setCurrentStep(4), []);
+  const onBack5 = useCallback(() => setCurrentStep(5), []);
+  const onBack6 = useCallback(() => setCurrentStep(6), []);
+  const onBack7 = useCallback(() => setCurrentStep(7), []);
+  const toggleFunOption = useCallback((id) => setSelectedFunOptions(prev => prev.includes(id) ? prev.filter(o => o !== id) : [...prev, id]), []);
+  const toggleEnvironment = useCallback((id) => setSelectedEnvironment(prev => prev.includes(id) ? prev.filter(e => e !== id) : (prev.length < 2 ? [...prev, id] : prev)), []);
+  const handleCustomEnvironmentChange = useCallback((value) => { setCustomEnvironment(value); setSelectedEnvironment(prev => prev.length > 1 ? [prev[0]] : prev); }, []);
+  const clearAll = useCallback(() => { setCurrentStep(1); setGoalInput(''); setSelectedIdentity(''); setSelectedFunOptions([]); setCustomFun(''); setBaselineHabit(''); setCustomBaselineHabit(''); setCapacityExpression(''); setCustomCapacityExpression(''); setSelectedAnchor(''); setCustomAnchor(''); setSelectedEnvironment([]); setCustomEnvironment(''); }, []);
+
+  const renderStep = () => {
     const exampleGoals = ['Eat healthier', 'Reduce stress', 'Get more sleep'];
     
     return (
@@ -1020,23 +1040,23 @@ const OnboardingMockups = () => {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <Step1 />;
+        return <Step1Component goalInput={goalInput} onGoalInputChange={onGoalInputChange} onGoalSelect={onGoalSelect} onContinue={toStep2} />;
       case 2:
-        return <Step2 />;
+        return <Step2Component selectedIdentity={selectedIdentity} onSelectIdentity={setSelectedIdentity} onBack={onBack1} onContinue={toStep3} />;
       case 3:
-        return <Step3 />;
+        return <Step3Component customFun={customFun} onCustomFunChange={setCustomFun} selectedFunOptions={selectedFunOptions} onToggleFunOption={toggleFunOption} onBack={onBack2} onContinue={toStep4} />;
       case 4:
-        return <Step4 />;
+        return <Step4Component customBaselineHabit={customBaselineHabit} onCustomBaselineHabitChange={setCustomBaselineHabit} baselineHabit={baselineHabit} onSelectBaseline={setBaselineHabit} onClearBaselinePreset={() => setBaselineHabit('')} onBack={onBack3} onContinue={toStep5} />;
       case 5:
-        return <Step5 />;
+        return <Step5Component customCapacityExpression={customCapacityExpression} onCustomCapacityExpressionChange={setCustomCapacityExpression} capacityExpression={capacityExpression} onSelectCapacity={setCapacityExpression} onClearCapacityPreset={() => setCapacityExpression('')} onBack={onBack4} onContinue={toStep6} />;
       case 6:
-        return <Step6 />;
+        return <Step6Component customAnchor={customAnchor} onCustomAnchorChange={setCustomAnchor} selectedAnchor={selectedAnchor} onSelectAnchor={setSelectedAnchor} onClearAnchorPreset={() => setSelectedAnchor('')} onBack={onBack5} onContinue={toStep7} />;
       case 7:
-        return <Step7 />;
+        return <Step7Component customEnvironment={customEnvironment} onCustomEnvironmentChange={handleCustomEnvironmentChange} selectedEnvironment={selectedEnvironment} onToggleEnvironment={toggleEnvironment} onBack={onBack6} onContinue={toStep8} />;
       case 8:
-        return <Step8 />;
+        return <Step8Component selectedIdentity={selectedIdentity} selectedAnchor={selectedAnchor} customAnchor={customAnchor} baselineHabit={baselineHabit} customBaselineHabit={customBaselineHabit} capacityExpression={capacityExpression} customCapacityExpression={customCapacityExpression} selectedEnvironment={selectedEnvironment} customEnvironment={customEnvironment} selectedFunOptions={selectedFunOptions} customFun={customFun} checkInTime={checkInTime} onCheckInTimeChange={setCheckInTime} onBack={onBack7} />;
       default:
-        return <Step1 />;
+        return <Step1Component goalInput={goalInput} onGoalInputChange={onGoalInputChange} onGoalSelect={onGoalSelect} onContinue={toStep2} />;
     }
   };
 

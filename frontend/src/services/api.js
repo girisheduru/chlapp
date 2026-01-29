@@ -45,6 +45,12 @@ export const habitsAPI = {
   create: (data) => apiRequest('/habits', { method: 'POST', body: data }),
   update: (id, data) => apiRequest(`/habits/${id}`, { method: 'PUT', body: data }),
   delete: (id) => apiRequest(`/habits/${id}`, { method: 'DELETE' }),
+  saveUserHabitPreference: (data) => apiRequest('/saveUserHabitPreference', { method: 'POST', body: data }),
+  getUserHabitById: (userId, habitId) => apiRequest(`/GetUserHabitById?userId=${userId}&habitId=${habitId}`),
+  generateIdentities: (data) => apiRequest('/generateIdentities', { method: 'POST', body: data }),
+  generateShortHabitOptions: (data) => apiRequest('/generateShortHabitOptions', { method: 'POST', body: data }),
+  generateFullHabitOptions: (data) => apiRequest('/generateFullHabitOptions', { method: 'POST', body: data }),
+  generateObviousCues: (data) => apiRequest('/generateObviousCues', { method: 'POST', body: data }),
 };
 
 /**

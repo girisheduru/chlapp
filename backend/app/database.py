@@ -1,10 +1,14 @@
 """
 MongoDB database connection module using Motor (async driver).
 """
+import logging
+import traceback
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Optional
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Global MongoDB client instance
 client: Optional[AsyncIOMotorClient] = None
@@ -14,25 +18,33 @@ async def connect_to_mongo():
     """Create database connection."""
     global client
     try:
+        logger.info(f"Connecting to MongoDB at {settings.mongodb_url}")
         client = AsyncIOMotorClient(settings.mongodb_url)
         # Test the connection
         await client.admin.command('ping')
-        print(f"Connected to MongoDB: {settings.mongodb_url}")
+        logger.info(f"Successfully connected to MongoDB: {settings.mongodb_url}")
     except Exception as e:
-        print(f"Error connecting to MongoDB: {e}")
+        logger.error(f"Error connecting to MongoDB: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise
 
 
 async def close_mongo_connection():
     """Close database connection."""
     global client
-    if client:
-        client.close()
-        print("MongoDB connection closed")
+    try:
+        if client:
+            client.close()
+            logger.info("MongoDB connection closed")
+    except Exception as e:
+        logger.error(f"Error closing MongoDB connection: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
 
 def get_database():
     """Get database instance."""
     if client is None:
+        logger.error("Database connection not initialized - client is None")
         raise RuntimeError("Database connection not initialized")
+    logger.debug(f"Getting database instance: {settings.database_name}")
     return client[settings.database_name]

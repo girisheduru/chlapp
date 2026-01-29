@@ -1,6 +1,8 @@
 """
 FastAPI application main entry point.
 """
+import logging
+import traceback
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -8,6 +10,10 @@ from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Initialize logging before importing other modules
+from app.core.logging_config import setup_logging
+logger = setup_logging()
 
 from app.database import connect_to_mongo, close_mongo_connection
 from app.core.config import settings
@@ -18,10 +24,25 @@ from app.routers import habits, streaks, reflections
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     # Startup: Connect to MongoDB
-    await connect_to_mongo()
+    try:
+        logger.info("Starting application...")
+        await connect_to_mongo()
+        logger.info("Successfully connected to MongoDB")
+    except Exception as e:
+        logger.error(f"Failed to connect to MongoDB: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise
+    
     yield
+    
     # Shutdown: Close MongoDB connection
-    await close_mongo_connection()
+    try:
+        logger.info("Shutting down application...")
+        await close_mongo_connection()
+        logger.info("Successfully closed MongoDB connection")
+    except Exception as e:
+        logger.error(f"Error closing MongoDB connection: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
 
 # Create FastAPI application instance

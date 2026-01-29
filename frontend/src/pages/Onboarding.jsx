@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { colors, fonts } from '../constants/designTokens';
 import { 
   identityOptions, 
@@ -10,6 +10,342 @@ import {
   checkInTimeOptions 
 } from '../data/onboardingData';
 import { Button, Card, SelectableOption, InfoBox, Quote, ProgressBar } from '../components';
+import { habitsAPI } from '../services/api';
+import { getOrCreateUserAndHabitIds } from '../utils/userStorage';
+
+// Step 1 Component - Defined outside to maintain stable reference
+const Step1Component = React.memo(({ goalInput, onGoalInputChange, onGoalSelect, onContinue, isSaving }) => {
+  const exampleGoals = ['Eat healthier', 'Reduce stress', 'Get more sleep'];
+  
+  return (
+    <Card>
+      <div style={{ textAlign: 'center', marginBottom: 36 }}>
+        <div
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 20px',
+            fontSize: 32,
+          }}
+        >
+          🌱
+        </div>
+        <h1 style={{ fontFamily: fonts.heading, fontSize: 28, fontWeight: 600, color: colors.primary, margin: '0 0 10px 0' }}>Welcome</h1>
+        <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0 }}>Let's build something that lasts.</p>
+      </div>
+
+      <div style={{ marginBottom: 28 }}>
+        <label style={{ display: 'block', fontFamily: fonts.body, fontSize: 16, fontWeight: 600, color: colors.text, marginBottom: 12 }}>
+          What's something you'd like to work on right now?
+        </label>
+        <input
+          type="text"
+          value={goalInput}
+          onChange={onGoalInputChange}
+          placeholder="Type your goal here..."
+          style={{
+            width: '100%',
+            padding: '16px 18px',
+            borderRadius: 10,
+            border: `2px solid ${colors.border}`,
+            fontSize: 15,
+            fontFamily: fonts.body,
+            color: colors.text,
+            background: colors.card,
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+        
+        {/* Example suggestions */}
+        <div style={{ marginTop: 16 }}>
+          <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, marginBottom: 10 }}>
+            Some ideas to get you started:
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {exampleGoals.map((goal) => (
+              <button
+                key={goal}
+                onClick={() => onGoalSelect(goal)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 20,
+                  border: `1px solid ${colors.border}`,
+                  background: goalInput === goal ? 'rgba(74, 124, 89, 0.08)' : colors.backgroundDark,
+                  fontFamily: fonts.body,
+                  fontSize: 13,
+                  color: colors.textMuted,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {goal}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button onClick={onContinue} disabled={!goalInput.trim() || isSaving}>
+          {isSaving ? 'Saving...' : 'Continue →'}
+        </Button>
+      </div>
+    </Card>
+  );
+});
+
+Step1Component.displayName = 'Step1Component';
+
+const TOTAL_STEPS = 8;
+
+const StepHeader = ({ step, title, subtitle }) => (
+  <div style={{ marginBottom: 28 }}>
+    <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 6px 0' }}>
+      Step {step} of {TOTAL_STEPS}
+    </p>
+    <h2 style={{ fontFamily: fonts.heading, fontSize: 26, fontWeight: 600, color: colors.primary, margin: '0 0 8px 0' }}>{title}</h2>
+    <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0 }}>{subtitle}</p>
+  </div>
+);
+
+// Step 3 - with custom input (stable component to prevent input focus loss)
+const Step3Component = React.memo(({
+  customFun, onCustomFunChange, selectedFunOptions, onToggleFunOption,
+  onBack, onContinue, isSaving
+}) => (
+  <Card>
+    <StepHeader step={3} title="What could we add that makes this habit more enjoyable for you?" subtitle="Pick what naturally energizes you and lifts your spirits." />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
+      {funOptions.map((option) => (
+        <button
+          key={option.id}
+          onClick={() => onToggleFunOption(option.id)}
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+            padding: '16px 12px', borderRadius: 12,
+            border: `2px solid ${selectedFunOptions.includes(option.id) ? colors.primaryLight : colors.border}`,
+            background: selectedFunOptions.includes(option.id) ? 'rgba(74, 124, 89, 0.08)' : colors.card,
+            cursor: 'pointer', transition: 'all 0.2s ease', textAlign: 'center',
+          }}
+        >
+          <span style={{ fontSize: 24 }}>{option.emoji}</span>
+          <span style={{ fontFamily: fonts.body, fontSize: 12, color: colors.text, lineHeight: 1.3 }}>{option.label}</span>
+        </button>
+      ))}
+    </div>
+    <div style={{ marginBottom: 20 }}>
+      <label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or add your own:</label>
+      <input
+        type="text"
+        value={customFun}
+        onChange={(e) => onCustomFunChange(e.target.value)}
+        placeholder="What makes things fun for you?"
+        style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }}
+      />
+    </div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}>
+      <Button variant="secondary" onClick={onBack}>← Back</Button>
+      <Button onClick={onContinue} disabled={(selectedFunOptions.length === 0 && !customFun.trim()) || isSaving}>{isSaving ? 'Saving...' : 'Continue →'}</Button>
+    </div>
+  </Card>
+));
+
+// Step 4 - with custom input; options from generateShortHabitOptions or static fallback
+const Step4Component = React.memo(({
+  customBaselineHabit, onCustomBaselineHabitChange, baselineHabit, onSelectBaseline, onClearBaselinePreset,
+  baselineOptions, isLoadingBaselineOptions,
+  onBack, onContinue, isSaving
+}) => (
+  <Card>
+    <StepHeader step={4} title="What habit counts on low-energy days?" subtitle="" />
+    <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
+      On busy or low-energy days, this is the smallest action that still means: "I'm this kind of person." It should be easy to start and easy to finish — something you could finish even on a hard day. (Think: 2-minute guideline, if possible)
+    </p>
+    {isLoadingBaselineOptions ? (
+      <div style={{ textAlign: 'center', padding: '32px 20px', marginBottom: 20 }}>
+        <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>Generating short habit options for you...</p>
+      </div>
+    ) : (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+      {baselineOptions.map((option) => (
+        <SelectableOption key={option.id} selected={baselineHabit === option.id && !customBaselineHabit} onClick={() => { onSelectBaseline(option.id); onCustomBaselineHabitChange(''); }}>
+          {option.label}
+        </SelectableOption>
+      ))}
+    </div>
+    )}
+    <div style={{ marginBottom: 20 }}>
+      <label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or write your own:</label>
+      <input
+        type="text"
+        value={customBaselineHabit}
+        onChange={(e) => { onCustomBaselineHabitChange(e.target.value); if (e.target.value) onClearBaselinePreset(); }}
+        placeholder="The smallest action that counts..."
+        style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }}
+      />
+    </div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}>
+      <Button variant="secondary" onClick={onBack}>← Back</Button>
+      <Button onClick={onContinue} disabled={(!baselineHabit && !customBaselineHabit.trim()) || isSaving || isLoadingBaselineOptions}>{isSaving ? 'Saving...' : isLoadingBaselineOptions ? 'Loading...' : 'Continue →'}</Button>
+    </div>
+  </Card>
+));
+
+// Step 5 - with custom input; options from generateFullHabitOptions or static fallback
+const Step5Component = React.memo(({
+  customCapacityExpression, onCustomCapacityExpressionChange, capacityExpression, onSelectCapacity, onClearCapacityPreset,
+  capacityOptions, isLoadingCapacityOptions,
+  onBack, onContinue, isSaving
+}) => (
+  <Card>
+    <StepHeader step={5} title="When you have more energy, how might this habit show up?" subtitle="" />
+    <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
+      This isn't a goal or expectation. It's just how the same identity can express itself when you have more capacity.
+    </p>
+    {isLoadingCapacityOptions ? (
+      <div style={{ textAlign: 'center', padding: '32px 20px', marginBottom: 20 }}>
+        <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>Generating full habit options for you...</p>
+      </div>
+    ) : (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+      {capacityOptions.map((option) => (
+        <SelectableOption key={option.id} selected={capacityExpression === option.id && !customCapacityExpression} onClick={() => { onSelectCapacity(option.id); onCustomCapacityExpressionChange(''); }}>
+          {option.label}
+        </SelectableOption>
+      ))}
+    </div>
+    )}
+    <div style={{ marginBottom: 20 }}>
+      <label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or write your own:</label>
+      <input
+        type="text"
+        value={customCapacityExpression}
+        onChange={(e) => { onCustomCapacityExpressionChange(e.target.value); if (e.target.value) onClearCapacityPreset(); }}
+        placeholder="When I have more energy, I..."
+        style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }}
+      />
+    </div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}>
+      <Button variant="secondary" onClick={onBack}>← Back</Button>
+      <Button onClick={onContinue} disabled={(!capacityExpression && !customCapacityExpression.trim()) || isSaving || isLoadingCapacityOptions}>{isSaving ? 'Saving...' : isLoadingCapacityOptions ? 'Loading...' : 'Continue →'}</Button>
+    </div>
+  </Card>
+));
+
+// Step 6 - with custom input
+const Step6Component = React.memo(({
+  customAnchor, onCustomAnchorChange, selectedAnchor, onSelectAnchor, onClearAnchorPreset,
+  onBack, onContinue, isSaving
+}) => {
+  const selectedAnchorObj = anchorOptions.find((o) => o.id === selectedAnchor);
+  const triggerText = customAnchor || (selectedAnchorObj ? selectedAnchorObj.label : '...');
+  return (
+    <Card>
+      <StepHeader step={6} title="Habit Stacking — Attach it to your life" subtitle="Anchor it to something you already do." />
+      <InfoBox color="blue"><strong>Why this helps:</strong> Attaching a new habit to something you already do gives it a natural place in your day — so you don't have to remember or rely on motivation.</InfoBox>
+      <div style={{ background: colors.text, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+        <p style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 8px 0' }}>The habit stack formula:</p>
+        <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.card, margin: 0 }}>"When <span style={{ color: '#93C5FD' }}>[cue]</span>, I will <span style={{ color: '#86EFAC' }}>[new habit]</span>."</p>
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <p style={{ fontFamily: fonts.body, fontSize: 14, fontWeight: 600, color: colors.text, marginBottom: 12 }}>Choose your cue:</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {anchorOptions.map((option) => (
+            <SelectableOption key={option.id} selected={selectedAnchor === option.id && !customAnchor} onClick={() => { onSelectAnchor(option.id); onCustomAnchorChange(''); }} emoji={option.emoji}>
+              {option.label}
+            </SelectableOption>
+          ))}
+        </div>
+      </div>
+      <div style={{ marginBottom: 20 }}>
+        <label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or create your own cue:</label>
+        <input
+          type="text"
+          value={customAnchor}
+          onChange={(e) => { onCustomAnchorChange(e.target.value); if (e.target.value) onClearAnchorPreset(); }}
+          placeholder="After I..."
+          style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }}
+        />
+      </div>
+      {(selectedAnchor || customAnchor) && (
+        <div style={{ background: 'linear-gradient(135deg, #F0F7F4 0%, #E8F5E9 100%)', borderRadius: 12, padding: 20, textAlign: 'center', marginBottom: 20 }}>
+          <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.primaryLight, margin: '0 0 10px 0' }}>Your habit stack</p>
+          <p style={{ fontFamily: fonts.heading, fontSize: 16, color: colors.primary, margin: 0, lineHeight: 1.6 }}>"{triggerText}, I will show up for my body."</p>
+        </div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}>
+        <Button variant="secondary" onClick={onBack}>← Back</Button>
+        <Button onClick={onContinue} disabled={(!selectedAnchor && !customAnchor) || isSaving}>{isSaving ? 'Saving...' : 'Lock in my cue →'}</Button>
+      </div>
+    </Card>
+  );
+});
+
+// Step 7 - with custom input; options from generateObviousCues or static fallback
+const Step7Component = React.memo(({
+  customEnvironment, onCustomEnvironmentChange, selectedEnvironment, onToggleEnvironment,
+  environmentOptions: environmentOptionsProp, isLoadingEnvironmentOptions,
+  onBack, onContinue, isSaving
+}) => {
+  const maxPresetsAllowed = customEnvironment.trim() ? 1 : 2;
+  return (
+    <Card>
+      <StepHeader step={7} title="Make It Obvious" subtitle="Design your environment. Make your habit the path of least resistance. Pick up to 2, or add your own." />
+      <InfoBox color="primary"><strong>The secret:</strong> Environment design quietly does most of the work. You don't need motivation when the good choice is the easy choice.</InfoBox>
+      {isLoadingEnvironmentOptions ? (
+        <div style={{ textAlign: 'center', padding: '32px 20px', marginBottom: 20 }}>
+          <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>Generating environment cues for you...</p>
+        </div>
+      ) : (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+        {environmentOptionsProp.map((option) => {
+          const isSelected = selectedEnvironment.includes(option.id);
+          const isDisabled = !isSelected && selectedEnvironment.length >= maxPresetsAllowed;
+          return (
+            <button
+              key={option.id}
+              onClick={() => onToggleEnvironment(option.id)}
+              disabled={isDisabled}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '16px 18px', borderRadius: 12,
+                border: `2px solid ${isSelected ? colors.primaryLight : colors.border}`,
+                background: isSelected ? 'rgba(74, 124, 89, 0.08)' : colors.card,
+                cursor: isDisabled ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease', textAlign: 'left', opacity: isDisabled ? 0.5 : 1,
+              }}
+            >
+              <span style={{ fontSize: 20 }}>{option.emoji || '✨'}</span>
+              <span style={{ fontFamily: fonts.body, fontSize: 14, fontWeight: 500, color: colors.text, flex: 1 }}>{option.label}</span>
+              {isSelected && <span style={{ width: 20, height: 20, borderRadius: '50%', background: colors.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11 }}>✓</span>}
+            </button>
+          );
+        })}
+      </div>
+      )}
+      <div style={{ marginBottom: 20 }}>
+        <label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or add your own:</label>
+        <input
+          type="text"
+          value={customEnvironment}
+          onChange={(e) => onCustomEnvironmentChange(e.target.value)}
+          placeholder="What would make it easier?"
+          autoComplete="off"
+          style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }}
+        />
+      </div>
+      <p style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textLight, textAlign: 'center', marginBottom: 20 }}>You can add more later. Start simple.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}>
+        <Button variant="secondary" onClick={onBack}>← Back</Button>
+        <Button onClick={onContinue} disabled={(selectedEnvironment.length === 0 && !customEnvironment.trim()) || isSaving || isLoadingEnvironmentOptions}>{isSaving ? 'Saving...' : isLoadingEnvironmentOptions ? 'Loading...' : "I'm ready →"}</Button>
+      </div>
+    </Card>
+  );
+});
 
 const Onboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -26,250 +362,332 @@ const Onboarding = () => {
   const [selectedEnvironment, setSelectedEnvironment] = useState([]);
   const [customEnvironment, setCustomEnvironment] = useState('');
   const [checkInTime, setCheckInTime] = useState('8:00 AM');
+  const [userId, setUserId] = useState(null);
+  const [habitId, setHabitId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [generatedIdentities, setGeneratedIdentities] = useState([]);
+  const [isLoadingIdentities, setIsLoadingIdentities] = useState(false);
+  const [generatedBaselineOptions, setGeneratedBaselineOptions] = useState([]);
+  const [isLoadingBaselineOptions, setIsLoadingBaselineOptions] = useState(false);
+  const [generatedCapacityOptions, setGeneratedCapacityOptions] = useState([]);
+  const [isLoadingCapacityOptions, setIsLoadingCapacityOptions] = useState(false);
+  const [generatedEnvironmentOptions, setGeneratedEnvironmentOptions] = useState([]);
+  const [isLoadingEnvironmentOptions, setIsLoadingEnvironmentOptions] = useState(false);
+  const [step8HabitFromDb, setStep8HabitFromDb] = useState(null);
+  const [isLoadingStep8Habit, setIsLoadingStep8Habit] = useState(false);
 
-  const totalSteps = 8;
+  const totalSteps = TOTAL_STEPS;
 
-  const StepHeader = ({ step, title, subtitle }) => (
-    <div style={{ marginBottom: 28 }}>
-      <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 6px 0' }}>
-        Step {step} of {totalSteps}
-      </p>
-      <h2 style={{ fontFamily: fonts.heading, fontSize: 26, fontWeight: 600, color: colors.primary, margin: '0 0 8px 0' }}>{title}</h2>
-      <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0 }}>{subtitle}</p>
-    </div>
-  );
+  // Initialize user and habit IDs on mount
+  useEffect(() => {
+    const { userId: uid, habitId: hid } = getOrCreateUserAndHabitIds();
+    setUserId(uid);
+    setHabitId(hid);
+  }, []);
 
-  // Step 1: Welcome
-  const Step1 = () => {
-    const exampleGoals = ['Eat healthier', 'Reduce stress', 'Get more sleep'];
+  // Fetch generated identities when step 2 loads
+  useEffect(() => {
+    const fetchIdentities = async () => {
+      // Only fetch if we're on step 2, have user/habit IDs, and haven't loaded identities yet
+      if (currentStep === 2 && userId && habitId && generatedIdentities.length === 0 && !isLoadingIdentities) {
+        setIsLoadingIdentities(true);
+        try {
+          const response = await habitsAPI.generateIdentities({ userId, habitId });
+          // Format identities to match the expected structure
+          const formatted = response.identities.map((statement, index) => ({
+            id: `generated_${index}`,
+            statement: statement.trim(),
+            emoji: '💭' // Default emoji for generated identities
+          }));
+          setGeneratedIdentities(formatted);
+        } catch (error) {
+          console.error('Error generating identities:', error);
+          // Fallback to static identities if API fails - set empty array so it uses static options
+          setGeneratedIdentities([]);
+        } finally {
+          setIsLoadingIdentities(false);
+        }
+      }
+    };
+
+    fetchIdentities();
+  }, [currentStep, userId, habitId]);
+
+  // Fetch short habit options when step 4 loads (generateShortHabitOptions)
+  useEffect(() => {
+    const fetchShortHabitOptions = async () => {
+      if (currentStep === 4 && userId && habitId && generatedBaselineOptions.length === 0 && !isLoadingBaselineOptions) {
+        setIsLoadingBaselineOptions(true);
+        try {
+          const response = await habitsAPI.generateShortHabitOptions({ userId, habitId });
+          const options = (response.options || []).map((label, index) => ({
+            id: `generated_${index}`,
+            label: typeof label === 'string' ? label.trim() : String(label),
+          })).filter(o => o.label);
+          setGeneratedBaselineOptions(options);
+        } catch (error) {
+          console.error('Error generating short habit options:', error);
+          setGeneratedBaselineOptions([]);
+        } finally {
+          setIsLoadingBaselineOptions(false);
+        }
+      }
+    };
+    fetchShortHabitOptions();
+  }, [currentStep, userId, habitId]);
+
+  // Fetch full habit options when step 5 loads (generateFullHabitOptions)
+  useEffect(() => {
+    const fetchFullHabitOptions = async () => {
+      if (currentStep === 5 && userId && habitId && generatedCapacityOptions.length === 0 && !isLoadingCapacityOptions) {
+        setIsLoadingCapacityOptions(true);
+        try {
+          const response = await habitsAPI.generateFullHabitOptions({ userId, habitId });
+          const options = (response.options || []).map((label, index) => ({
+            id: `generated_${index}`,
+            label: typeof label === 'string' ? label.trim() : String(label),
+          })).filter(o => o.label);
+          setGeneratedCapacityOptions(options);
+        } catch (error) {
+          console.error('Error generating full habit options:', error);
+          setGeneratedCapacityOptions([]);
+        } finally {
+          setIsLoadingCapacityOptions(false);
+        }
+      }
+    };
+    fetchFullHabitOptions();
+  }, [currentStep, userId, habitId]);
+
+  // Fetch obvious cues (environment options) when step 7 loads (generateObviousCues)
+  useEffect(() => {
+    const fetchObviousCues = async () => {
+      if (currentStep === 7 && userId && habitId && generatedEnvironmentOptions.length === 0 && !isLoadingEnvironmentOptions) {
+        setIsLoadingEnvironmentOptions(true);
+        try {
+          const response = await habitsAPI.generateObviousCues({ userId, habitId });
+          const cues = (response.cues || []).map((label, index) => ({
+            id: `generated_${index}`,
+            label: typeof label === 'string' ? label.trim() : String(label),
+            emoji: '✨',
+          })).filter(o => o.label);
+          setGeneratedEnvironmentOptions(cues);
+        } catch (error) {
+          console.error('Error generating obvious cues:', error);
+          setGeneratedEnvironmentOptions([]);
+        } finally {
+          setIsLoadingEnvironmentOptions(false);
+        }
+      }
+    };
+    fetchObviousCues();
+  }, [currentStep, userId, habitId]);
+
+  // Fetch habit from MongoDB when step 8 loads (GetUserHabitById) to populate summary
+  useEffect(() => {
+    const fetchStep8Habit = async () => {
+      if (currentStep === 8 && userId && habitId) {
+        setIsLoadingStep8Habit(true);
+        setStep8HabitFromDb(null);
+        try {
+          const response = await habitsAPI.getUserHabitById(userId, habitId);
+          setStep8HabitFromDb(response);
+        } catch (error) {
+          console.error('Error fetching habit for step 8:', error);
+          setStep8HabitFromDb(null);
+        } finally {
+          setIsLoadingStep8Habit(false);
+        }
+      }
+    };
+    fetchStep8Habit();
+  }, [currentStep, userId, habitId]);
+
+  // Memoize the goal input handler to prevent re-renders
+  const handleGoalInputChange = useCallback((e) => {
+    setGoalInput(e.target.value);
+  }, []);
+
+  const handleGoalSelect = useCallback((goal) => {
+    setGoalInput(goal);
+  }, []);
+
+  // Function to save habit preference to backend
+  const saveHabitPreference = useCallback(async (stepData) => {
+    if (!userId || !habitId) {
+      console.error('User ID or Habit ID not initialized');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Resolve identity statement from static options or generated identities
+      const identityStatement = selectedIdentity
+        ? (identityOptions.find(opt => opt.id === selectedIdentity)?.statement
+           || generatedIdentities.find(opt => opt.id === selectedIdentity)?.statement
+           || null)
+        : null;
+
+      // Map onboarding data to preferences structure
+      const preferences = {
+        starting_idea: goalInput || null,
+        identity: identityStatement,
+        enjoyment: customFun || (selectedFunOptions.length > 0 
+          ? selectedFunOptions.map(id => funOptions.find(opt => opt.id === id)?.label).filter(Boolean).join(', ') 
+          : null),
+        starter_habit: customBaselineHabit || (baselineHabit
+          ? (generatedBaselineOptions.find(opt => opt.id === baselineHabit)?.label || baselineHabitOptions.find(opt => opt.id === baselineHabit)?.label || null)
+          : null),
+        full_habit: customCapacityExpression || (capacityExpression
+          ? (generatedCapacityOptions.find(opt => opt.id === capacityExpression)?.label || capacityExpressionOptions.find(opt => opt.id === capacityExpression)?.label || null)
+          : null),
+        habit_stack: customAnchor || (selectedAnchor ? anchorOptions.find(opt => opt.id === selectedAnchor)?.label || null : null),
+        habit_environment: customEnvironment || (selectedEnvironment.length > 0
+          ? selectedEnvironment.map(id => generatedEnvironmentOptions.find(opt => opt.id === id)?.label || environmentOptions.find(opt => opt.id === id)?.label).filter(Boolean).join(', ')
+          : null),
+      };
+
+      const habitData = {
+        userId,
+        habitId,
+        preferences,
+      };
+
+      const response = await habitsAPI.saveUserHabitPreference(habitData);
+      console.log('Habit preference saved:', response);
+      return response;
+    } catch (error) {
+      console.error('Error saving habit preference:', error);
+      alert('Failed to save habit preference. Please try again.');
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [userId, habitId, goalInput, selectedIdentity, generatedIdentities, selectedFunOptions, customFun, baselineHabit, customBaselineHabit, generatedBaselineOptions, capacityExpression, customCapacityExpression, generatedCapacityOptions, selectedAnchor, customAnchor, selectedEnvironment, customEnvironment, generatedEnvironmentOptions]);
+
+  // Helper function to save and move to next step
+  const saveAndContinue = useCallback(async (nextStep) => {
+    try {
+      await saveHabitPreference();
+      setCurrentStep(nextStep);
+    } catch (error) {
+      // Error already handled in saveHabitPreference
+      console.error('Failed to save and continue:', error);
+    }
+  }, [saveHabitPreference]);
+
+  const handleContinue = useCallback(async () => {
+    // Save current step data before moving to next step
+    await saveAndContinue(2);
+  }, [saveAndContinue]);
+
+  const toggleFunOption = useCallback((id) => {
+    if (selectedFunOptions.includes(id)) {
+      setSelectedFunOptions(selectedFunOptions.filter(o => o !== id));
+    } else {
+      setSelectedFunOptions([...selectedFunOptions, id]);
+    }
+  }, [selectedFunOptions]);
+
+  const handleCustomEnvironmentChange = useCallback((value) => {
+    setCustomEnvironment(value);
+    if (value && selectedEnvironment.length > 1) {
+      setSelectedEnvironment([selectedEnvironment[0]]);
+    }
+  }, [selectedEnvironment]);
+
+  const toggleEnvironment = useCallback((id) => {
+    if (selectedEnvironment.includes(id)) {
+      setSelectedEnvironment(selectedEnvironment.filter(e => e !== id));
+    } else if (selectedEnvironment.length < 2) {
+      setSelectedEnvironment([...selectedEnvironment, id]);
+    }
+  }, [selectedEnvironment]);
+
+  // Step 2: Identity Framing
+  const Step2 = () => {
+    // Use generated identities if available, otherwise fallback to static options
+    const identitiesToShow = generatedIdentities.length > 0 ? generatedIdentities : identityOptions;
     
     return (
       <Card>
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px',
-              fontSize: 32,
-            }}
-          >
-            🌱
-          </div>
-          <h1 style={{ fontFamily: fonts.heading, fontSize: 28, fontWeight: 600, color: colors.primary, margin: '0 0 10px 0' }}>Welcome</h1>
-          <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0 }}>Let's build something that lasts.</p>
-        </div>
+        <StepHeader step={2} title="As you work on this, who do you want to become?" subtitle="Real change starts with identity. Choose the statement that resonates most." />
 
-        <div style={{ marginBottom: 28 }}>
-          <label style={{ display: 'block', fontFamily: fonts.body, fontSize: 16, fontWeight: 600, color: colors.text, marginBottom: 12 }}>
-            What's something you'd like to work on right now?
-          </label>
-          <input
-            type="text"
-            value={goalInput}
-            onChange={(e) => setGoalInput(e.target.value)}
-            placeholder="Type your goal here..."
-            style={{
-              width: '100%',
-              padding: '16px 18px',
-              borderRadius: 10,
-              border: `2px solid ${colors.border}`,
-              fontSize: 15,
-              fontFamily: fonts.body,
-              color: colors.text,
-              background: colors.card,
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-          
-          {/* Example suggestions */}
-          <div style={{ marginTop: 16 }}>
-            <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, marginBottom: 10 }}>
-              Some ideas to get you started:
+        <InfoBox color="primary">
+          This helps us shape habits that fit you, not just the goal.
+        </InfoBox>
+
+        {isLoadingIdentities ? (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>
+              Generating personalized identity options for you...
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {exampleGoals.map((goal) => (
-                <button
-                  key={goal}
-                  onClick={() => setGoalInput(goal)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: 20,
-                    border: `1px solid ${colors.border}`,
-                    background: goalInput === goal ? 'rgba(74, 124, 89, 0.08)' : colors.backgroundDark,
-                    fontFamily: fonts.body,
-                    fontSize: 13,
-                    color: colors.textMuted,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  {goal}
-                </button>
-              ))}
-            </div>
           </div>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button onClick={() => setCurrentStep(2)} disabled={!goalInput.trim()}>
-            Continue →
-          </Button>
-        </div>
-      </Card>
-    );
-  };
-
-  // Step 2: Identity Framing
-  const Step2 = () => (
-    <Card>
-      <StepHeader step={2} title="As you work on this, who do you want to become?" subtitle="Real change starts with identity. Choose the statement that resonates most." />
-
-      <InfoBox color="primary">
-        This helps us shape habits that fit you, not just the goal.
-      </InfoBox>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-        {identityOptions.map((option) => (
-          <button
-            key={option.id}
-            onClick={() => setSelectedIdentity(option.id)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              width: '100%',
-              padding: '18px 20px',
-              borderRadius: 12,
-              border: `2px solid ${selectedIdentity === option.id ? colors.primaryLight : colors.border}`,
-              background: selectedIdentity === option.id ? 'rgba(74, 124, 89, 0.08)' : colors.card,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              textAlign: 'left',
-            }}
-          >
-            <span style={{ fontSize: 24 }}>{option.emoji}</span>
-            <span style={{ fontFamily: fonts.heading, fontSize: 16, color: colors.text, flex: 1, lineHeight: 1.4 }}>
-              "{option.statement}"
-            </span>
-            {selectedIdentity === option.id && (
-              <span
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+            {identitiesToShow.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => setSelectedIdentity(option.id)}
                 style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  background: colors.primaryLight,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: 12,
-                  flexShrink: 0,
+                  gap: 14,
+                  width: '100%',
+                  padding: '18px 20px',
+                  borderRadius: 12,
+                  border: `2px solid ${selectedIdentity === option.id ? colors.primaryLight : colors.border}`,
+                  background: selectedIdentity === option.id ? 'rgba(74, 124, 89, 0.08)' : colors.card,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  textAlign: 'left',
                 }}
               >
-                ✓
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+                <span style={{ fontSize: 24 }}>{option.emoji}</span>
+                <span style={{ fontFamily: fonts.heading, fontSize: 16, color: colors.text, flex: 1, lineHeight: 1.4 }}>
+                  "{option.statement}"
+                </span>
+                {selectedIdentity === option.id && (
+                  <span
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      background: colors.primaryLight,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    ✓
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
       <Quote>Every action you take is a vote for the type of person you wish to become.</Quote>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28, gap: 12 }}>
-        <Button variant="secondary" onClick={() => setCurrentStep(1)}>
+        <Button variant="secondary" onClick={() => {
+          setGeneratedIdentities([]); // Reset so identities can be regenerated if goal changes
+          setCurrentStep(1);
+        }}>
           ← Back
         </Button>
-        <Button onClick={() => setCurrentStep(3)} disabled={!selectedIdentity}>
-          This is me →
+        <Button onClick={() => saveAndContinue(3)} disabled={!selectedIdentity || isSaving || isLoadingIdentities}>
+          {isSaving ? 'Saving...' : isLoadingIdentities ? 'Loading...' : 'This is me →'}
         </Button>
       </div>
     </Card>
-  );
-
-  // Step 3: Make it Enjoyable
-  const Step3 = () => {
-    const toggleFunOption = (id) => {
-      if (selectedFunOptions.includes(id)) {
-        setSelectedFunOptions(selectedFunOptions.filter(o => o !== id));
-      } else {
-        setSelectedFunOptions([...selectedFunOptions, id]);
-      }
-    };
-
-    return (
-      <Card>
-        <StepHeader step={3} title="What could we add that makes this habit more enjoyable for you?" subtitle="Pick what naturally energizes you and lifts your spirits." />
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
-          {funOptions.map((option) => (
-            <button
-              key={option.id}
-              onClick={() => toggleFunOption(option.id)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 8,
-                padding: '16px 12px',
-                borderRadius: 12,
-                border: `2px solid ${selectedFunOptions.includes(option.id) ? colors.primaryLight : colors.border}`,
-                background: selectedFunOptions.includes(option.id) ? 'rgba(74, 124, 89, 0.08)' : colors.card,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                textAlign: 'center',
-              }}
-            >
-              <span style={{ fontSize: 24 }}>{option.emoji}</span>
-              <span style={{ fontFamily: fonts.body, fontSize: 12, color: colors.text, lineHeight: 1.3 }}>{option.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Custom input */}
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>
-            Or add your own:
-          </label>
-          <input
-            type="text"
-            value={customFun}
-            onChange={(e) => setCustomFun(e.target.value)}
-            placeholder="What makes things fun for you?"
-            style={{
-              width: '100%',
-              padding: '14px 16px',
-              borderRadius: 10,
-              border: `2px solid ${colors.border}`,
-              fontSize: 14,
-              fontFamily: fonts.body,
-              color: colors.text,
-              background: colors.card,
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}>
-          <Button variant="secondary" onClick={() => setCurrentStep(2)}>
-            ← Back
-          </Button>
-          <Button onClick={() => setCurrentStep(4)} disabled={selectedFunOptions.length === 0 && !customFun.trim()}>
-            Continue →
-          </Button>
-        </div>
-      </Card>
     );
   };
 
-  // Step 4: Baseline Habit
+  // Step 4: Baseline Habit (inline Step4 removed - using Step4Component)
   const Step4 = () => {
     return (
       <Card>
@@ -326,8 +744,8 @@ const Onboarding = () => {
           <Button variant="secondary" onClick={() => setCurrentStep(3)}>
             ← Back
           </Button>
-          <Button onClick={() => setCurrentStep(5)} disabled={!baselineHabit && !customBaselineHabit.trim()}>
-            Continue →
+          <Button onClick={() => saveAndContinue(5)} disabled={(!baselineHabit && !customBaselineHabit.trim()) || isSaving}>
+            {isSaving ? 'Saving...' : 'Continue →'}
           </Button>
         </div>
       </Card>
@@ -391,8 +809,8 @@ const Onboarding = () => {
           <Button variant="secondary" onClick={() => setCurrentStep(4)}>
             ← Back
           </Button>
-          <Button onClick={() => setCurrentStep(6)} disabled={!capacityExpression && !customCapacityExpression.trim()}>
-            Continue →
+          <Button onClick={() => saveAndContinue(6)} disabled={(!capacityExpression && !customCapacityExpression.trim()) || isSaving}>
+            {isSaving ? 'Saving...' : 'Continue →'}
           </Button>
         </div>
       </Card>
@@ -500,8 +918,8 @@ const Onboarding = () => {
           <Button variant="secondary" onClick={() => setCurrentStep(5)}>
             ← Back
           </Button>
-          <Button onClick={() => setCurrentStep(7)} disabled={!selectedAnchor && !customAnchor}>
-            Lock in my cue →
+          <Button onClick={() => saveAndContinue(7)} disabled={(!selectedAnchor && !customAnchor) || isSaving}>
+            {isSaving ? 'Saving...' : 'Lock in my cue →'}
           </Button>
         </div>
       </Card>
@@ -618,29 +1036,24 @@ const Onboarding = () => {
           <Button variant="secondary" onClick={() => setCurrentStep(6)}>
             ← Back
           </Button>
-          <Button onClick={() => setCurrentStep(8)} disabled={selectedEnvironment.length === 0 && !customEnvironment.trim()}>
-            I'm ready →
+          <Button onClick={() => saveAndContinue(8)} disabled={(selectedEnvironment.length === 0 && !customEnvironment.trim()) || isSaving}>
+            {isSaving ? 'Saving...' : "I'm ready →"}
           </Button>
         </div>
       </Card>
     );
   };
 
-  // Step 8: Summary
+  // Step 8: Summary — populated from /GetUserHabitById when available, else local state
   const Step8 = () => {
+    const p = step8HabitFromDb?.preferences;
     const selectedIdentityObj = identityOptions.find((o) => o.id === selectedIdentity);
     const selectedAnchorObj = anchorOptions.find((o) => o.id === selectedAnchor);
-    const triggerText = customAnchor || (selectedAnchorObj ? selectedAnchorObj.label : 'your chosen trigger');
-    
-    const baselineHabitObj = baselineHabitOptions.find((o) => o.id === baselineHabit);
-    const baselineText = customBaselineHabit || (baselineHabitObj ? baselineHabitObj.label : '');
-    
-    const capacityObj = capacityExpressionOptions.find((o) => o.id === capacityExpression);
-    const capacityText = customCapacityExpression || (capacityObj ? capacityObj.label : '');
-    
-    const envText = [...selectedEnvironment.map(id => environmentOptions.find(o => o.id === id)?.label), customEnvironment].filter(Boolean).join(', ');
-    
-    // Build enjoyment text
+    const triggerText = p?.habit_stack ?? (customAnchor || (selectedAnchorObj ? selectedAnchorObj.label : 'your chosen trigger'));
+    const baselineText = p?.starter_habit ?? (customBaselineHabit || (baselineHabit ? (generatedBaselineOptions.find((o) => o.id === baselineHabit)?.label || baselineHabitOptions.find((o) => o.id === baselineHabit)?.label) || '' : ''));
+    const capacityText = p?.full_habit ?? (customCapacityExpression || (capacityExpression ? (generatedCapacityOptions.find((o) => o.id === capacityExpression)?.label || capacityExpressionOptions.find((o) => o.id === capacityExpression)?.label || '') : ''));
+    const envText = p?.habit_environment ?? [...selectedEnvironment.map(id => generatedEnvironmentOptions.find(o => o.id === id)?.label || environmentOptions.find(o => o.id === id)?.label), customEnvironment].filter(Boolean).join(', ');
+    const enjoymentTextFromDb = p?.enjoyment;
     const enjoymentParts = [];
     if (selectedFunOptions.includes('music')) enjoymentParts.push('music I love');
     if (selectedFunOptions.includes('share')) enjoymentParts.push('a quick share when done');
@@ -649,10 +1062,8 @@ const Onboarding = () => {
     if (selectedFunOptions.includes('challenge')) enjoymentParts.push('a bit of challenge');
     if (selectedFunOptions.includes('aesthetic')) enjoymentParts.push('a look or vibe I like');
     if (customFun) enjoymentParts.push(customFun);
-    
-    const enjoymentText = enjoymentParts.length > 0 
-      ? `With ${enjoymentParts.slice(0, 2).join(', and ')}`
-      : 'With elements that bring you joy';
+    const enjoymentTextLocal = enjoymentParts.length > 0 ? `With ${enjoymentParts.slice(0, 2).join(', and ')}` : 'With elements that bring you joy';
+    const enjoymentText = enjoymentTextFromDb ?? enjoymentTextLocal;
 
     const SummaryRow = ({ icon, label, value, bg }) => (
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
@@ -679,6 +1090,16 @@ const Onboarding = () => {
         </div>
       </div>
     );
+
+    if (isLoadingStep8Habit) {
+      return (
+        <Card>
+          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+            <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted }}>Loading your habit plan...</p>
+          </div>
+        </Card>
+      );
+    }
 
     return (
       <Card>
@@ -708,7 +1129,7 @@ const Onboarding = () => {
             <SummaryRow
               icon="🪪"
               label="The identity you're forming"
-              value={`"${selectedIdentityObj?.statement || "I am someone who takes care of my body"}"`}
+              value={`"${p?.identity ?? selectedIdentityObj?.statement ?? "I am someone who takes care of my body"}"`}
               bg="#E8F5E9"
             />
             <div style={{ height: 1, background: colors.border }} />
@@ -776,7 +1197,13 @@ const Onboarding = () => {
           <Button variant="secondary" onClick={() => setCurrentStep(7)}>
             ← Back
           </Button>
-          <Button style={{ padding: '16px 36px', fontSize: 16 }}>Start My Journey →</Button>
+          <Button 
+            style={{ padding: '16px 36px', fontSize: 16 }} 
+            onClick={() => saveAndContinue(1)}
+            disabled={isSaving}
+          >
+            {isSaving ? 'Saving...' : 'Start My Journey →'}
+          </Button>
         </div>
       </Card>
     );
@@ -785,23 +1212,106 @@ const Onboarding = () => {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <Step1 />;
+        return (
+          <Step1Component
+            goalInput={goalInput}
+            onGoalInputChange={handleGoalInputChange}
+            onGoalSelect={handleGoalSelect}
+            onContinue={handleContinue}
+            isSaving={isSaving}
+          />
+        );
       case 2:
         return <Step2 />;
       case 3:
-        return <Step3 />;
+        // Continue saves enjoyment (selected fun options + custom) via saveUserHabitPreference, then goes to step 4
+        return (
+          <Step3Component
+            customFun={customFun}
+            onCustomFunChange={setCustomFun}
+            selectedFunOptions={selectedFunOptions}
+            onToggleFunOption={toggleFunOption}
+            onBack={() => setCurrentStep(2)}
+            onContinue={() => saveAndContinue(4)}
+            isSaving={isSaving}
+          />
+        );
       case 4:
-        return <Step4 />;
+        // Options from /generateShortHabitOptions on load; Continue saves via saveUserHabitPreference
+        const baselineOptionsToShow = generatedBaselineOptions.length > 0 ? generatedBaselineOptions : baselineHabitOptions;
+        return (
+          <Step4Component
+            customBaselineHabit={customBaselineHabit}
+            onCustomBaselineHabitChange={setCustomBaselineHabit}
+            baselineHabit={baselineHabit}
+            onSelectBaseline={setBaselineHabit}
+            onClearBaselinePreset={() => setBaselineHabit('')}
+            baselineOptions={baselineOptionsToShow}
+            isLoadingBaselineOptions={isLoadingBaselineOptions}
+            onBack={() => { setGeneratedBaselineOptions([]); setCurrentStep(3); }}
+            onContinue={() => saveAndContinue(5)}
+            isSaving={isSaving}
+          />
+        );
       case 5:
-        return <Step5 />;
+        // Options from /generateFullHabitOptions on load; Continue saves via saveUserHabitPreference
+        const capacityOptionsToShow = generatedCapacityOptions.length > 0 ? generatedCapacityOptions : capacityExpressionOptions;
+        return (
+          <Step5Component
+            customCapacityExpression={customCapacityExpression}
+            onCustomCapacityExpressionChange={setCustomCapacityExpression}
+            capacityExpression={capacityExpression}
+            onSelectCapacity={setCapacityExpression}
+            onClearCapacityPreset={() => setCapacityExpression('')}
+            capacityOptions={capacityOptionsToShow}
+            isLoadingCapacityOptions={isLoadingCapacityOptions}
+            onBack={() => { setGeneratedCapacityOptions([]); setCurrentStep(4); }}
+            onContinue={() => saveAndContinue(6)}
+            isSaving={isSaving}
+          />
+        );
       case 6:
-        return <Step6 />;
+        // "Lock in my cue" saves cue (habit_stack) via saveUserHabitPreference, then goes to step 7
+        return (
+          <Step6Component
+            customAnchor={customAnchor}
+            onCustomAnchorChange={setCustomAnchor}
+            selectedAnchor={selectedAnchor}
+            onSelectAnchor={setSelectedAnchor}
+            onClearAnchorPreset={() => setSelectedAnchor('')}
+            onBack={() => setCurrentStep(5)}
+            onContinue={() => saveAndContinue(7)}
+            isSaving={isSaving}
+          />
+        );
       case 7:
-        return <Step7 />;
+        // Options from /generateObviousCues on load; Continue saves via saveUserHabitPreference
+        const environmentOptionsToShow = generatedEnvironmentOptions.length > 0 ? generatedEnvironmentOptions : environmentOptions;
+        return (
+          <Step7Component
+            customEnvironment={customEnvironment}
+            onCustomEnvironmentChange={handleCustomEnvironmentChange}
+            selectedEnvironment={selectedEnvironment}
+            onToggleEnvironment={toggleEnvironment}
+            environmentOptions={environmentOptionsToShow}
+            isLoadingEnvironmentOptions={isLoadingEnvironmentOptions}
+            onBack={() => { setGeneratedEnvironmentOptions([]); setCurrentStep(6); }}
+            onContinue={() => saveAndContinue(8)}
+            isSaving={isSaving}
+          />
+        );
       case 8:
         return <Step8 />;
       default:
-        return <Step1 />;
+        return (
+          <Step1Component
+            goalInput={goalInput}
+            onGoalInputChange={handleGoalInputChange}
+            onGoalSelect={handleGoalSelect}
+            onContinue={handleContinue}
+            isSaving={isSaving}
+          />
+        );
     }
   };
 
@@ -851,6 +1361,7 @@ const Onboarding = () => {
                 setCustomAnchor('');
                 setSelectedEnvironment([]);
                 setCustomEnvironment('');
+                setGeneratedIdentities([]); // Reset generated identities
               }}
               style={{
                 background: 'transparent',

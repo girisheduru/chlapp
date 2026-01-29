@@ -1,10 +1,14 @@
 """
 LLM service for interacting with language models.
 """
+import logging
+import traceback
 import httpx
 from typing import Optional, List
 from app.core.config import settings
 import json
+
+logger = logging.getLogger(__name__)
 
 
 class LLMService:
@@ -34,49 +38,76 @@ class LLMService:
         Returns:
             Generated text response
         """
-        if not self.api_key:
-            raise ValueError("LLM API key not configured. Set LLM_API_KEY in environment variables.")
-        
-        temperature = temperature or self.temperature
-        max_tokens = max_tokens or self.max_tokens
-        
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        payload = {
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "temperature": temperature,
-            "max_tokens": max_tokens
-        }
-        
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            try:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=headers,
-                    json=payload
-                )
-                response.raise_for_status()
-                data = response.json()
-                
-                # Extract the generated text
-                if "choices" in data and len(data["choices"]) > 0:
-                    return data["choices"][0]["message"]["content"].strip()
-                else:
-                    raise ValueError("Unexpected response format from LLM API")
+        try:
+            if not self.api_key:
+                logger.warning("LLM API key not configured. Set LLM_API_KEY in environment variables.")
+                raise ValueError("LLM API key not configured. Set LLM_API_KEY in environment variables.")
+            
+            temperature = temperature or self.temperature
+            max_tokens = max_tokens or self.max_tokens
+            
+            logger.debug(
+                f"Calling LLM API - model: {self.model}, temperature: {temperature}, "
+                f"max_tokens: {max_tokens}, prompt_length: {len(prompt)}"
+            )
+            
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": self.model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            }
+            
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                try:
+                    response = await client.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=headers,
+                        json=payload
+                    )
+                    response.raise_for_status()
+                    data = response.json()
                     
-            except httpx.HTTPStatusError as e:
-                raise Exception(f"LLM API error: {e.response.status_code} - {e.response.text}")
-            except Exception as e:
-                raise Exception(f"Error calling LLM API: {str(e)}")
+                    # Extract the generated text
+                    if "choices" in data and len(data["choices"]) > 0:
+                        generated_text = data["choices"][0]["message"]["content"].strip()
+                        logger.debug(f"Successfully generated text - length: {len(generated_text)}")
+                        return generated_text
+                    else:
+                        logger.error("Unexpected response format from LLM API - no choices in response")
+                        logger.error(f"Response data: {data}")
+                        raise ValueError("Unexpected response format from LLM API")
+                        
+                except httpx.HTTPStatusError as e:
+                    logger.error(
+                        f"LLM API HTTP error - status: {e.response.status_code}, "
+                        f"response: {e.response.text}"
+                    )
+                    raise Exception(f"LLM API error: {e.response.status_code} - {e.response.text}")
+                except httpx.TimeoutException as e:
+                    logger.error(f"LLM API timeout error: {str(e)}")
+                    raise Exception(f"LLM API timeout: {str(e)}")
+                except Exception as e:
+                    logger.error(f"Error calling LLM API: {str(e)}")
+                    logger.error(f"Traceback: {traceback.format_exc()}")
+                    raise Exception(f"Error calling LLM API: {str(e)}")
+        except ValueError:
+            # Re-raise ValueError without logging (expected error)
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error in generate_text: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
     
     async def generate_list(self, prompt: str) -> List[str]:
         """
@@ -89,25 +120,33 @@ class LLMService:
         Returns:
             List of generated items
         """
-        response = await self.generate_text(prompt)
-        
-        # Split by newlines and clean up
-        items = [
-            item.strip()
-            for item in response.split("\n")
-            if item.strip() and not item.strip().startswith(("#", "-", "*", "•"))
-        ]
-        
-        # Remove numbering if present (e.g., "1. Item" -> "Item")
-        cleaned_items = []
-        for item in items:
-            # Remove leading numbers and punctuation
-            item = item.lstrip("0123456789. )-*•")
-            item = item.strip()
-            if item:
-                cleaned_items.append(item)
-        
-        return cleaned_items if cleaned_items else [response]
+        try:
+            logger.debug("Generating list from LLM response")
+            response = await self.generate_text(prompt)
+            
+            # Split by newlines and clean up
+            items = [
+                item.strip()
+                for item in response.split("\n")
+                if item.strip() and not item.strip().startswith(("#", "-", "*", "•"))
+            ]
+            
+            # Remove numbering if present (e.g., "1. Item" -> "Item")
+            cleaned_items = []
+            for item in items:
+                # Remove leading numbers and punctuation
+                item = item.lstrip("0123456789. )-*•")
+                item = item.strip()
+                if item:
+                    cleaned_items.append(item)
+            
+            result = cleaned_items if cleaned_items else [response]
+            logger.info(f"Successfully generated list with {len(result)} items")
+            return result
+        except Exception as e:
+            logger.error(f"Error generating list from LLM: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
 
 # Global LLM service instance
