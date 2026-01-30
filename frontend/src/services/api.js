@@ -1,18 +1,38 @@
 /**
  * API service for making HTTP requests to the backend
- * In production (Vercel), set VITE_API_URL to your backend origin (e.g. https://your-api.railway.app)
- * Without it, requests go to the same origin and Vercel returns NOT_FOUND (404) for /api/v1/*.
+ * 
+ * Local development: Uses relative URL '/api/v1' which Vite proxies to http://localhost:8000
+ * Production (Vercel): Requires VITE_API_URL env var pointing to your backend (e.g. https://your-api.railway.app)
  */
 
-const API_BASE_URL =
-  (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api/v1';
-
-// Fail fast in production when backend URL is missing (avoids silent NOT_FOUND from Vercel)
-if (import.meta.env.PROD && !import.meta.env.VITE_API_URL) {
+// Determine API base URL based on environment
+const getApiBaseUrl = () => {
+  // If VITE_API_URL is set (production), use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, '') + '/api/v1';
+  }
+  
+  // In development, use relative URL (Vite proxy handles it)
+  if (import.meta.env.DEV) {
+    return '/api/v1';
+  }
+  
+  // Production without VITE_API_URL - this won't work, warn the user
   console.error(
-    '[api.js] VITE_API_URL is not set. API calls will hit this origin and get 404 NOT_FOUND. ' +
+    '[api.js] VITE_API_URL is not set. API calls will fail with 404/405. ' +
       'Set VITE_API_URL in Vercel → Settings → Environment Variables to your backend URL (e.g. https://your-api.railway.app).'
   );
+  return '/api/v1'; // Will fail, but at least shows the error
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// Debug logging (only in development or when explicitly debugging)
+if (import.meta.env.DEV) {
+  console.log('[api.js] Running in development mode, using Vite proxy');
+  console.log('[api.js] API_BASE_URL =', API_BASE_URL);
+} else {
+  console.log('[api.js] API_BASE_URL =', API_BASE_URL);
 }
 
 /**
