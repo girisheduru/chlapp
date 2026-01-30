@@ -1,10 +1,19 @@
 /**
  * API service for making HTTP requests to the backend
  * In production (Vercel), set VITE_API_URL to your backend origin (e.g. https://your-api.railway.app)
+ * Without it, requests go to the same origin and Vercel returns NOT_FOUND (404) for /api/v1/*.
  */
 
 const API_BASE_URL =
   (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api/v1';
+
+// Fail fast in production when backend URL is missing (avoids silent NOT_FOUND from Vercel)
+if (import.meta.env.PROD && !import.meta.env.VITE_API_URL) {
+  console.error(
+    '[api.js] VITE_API_URL is not set. API calls will hit this origin and get 404 NOT_FOUND. ' +
+      'Set VITE_API_URL in Vercel → Settings → Environment Variables to your backend URL (e.g. https://your-api.railway.app).'
+  );
+}
 
 /**
  * Generic fetch wrapper with error handling
