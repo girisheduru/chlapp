@@ -4,12 +4,11 @@ API routes for streak-related endpoints.
 import logging
 import traceback
 from fastapi import APIRouter, HTTPException, status, Depends
-from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
 
 from app.database import get_database
-from app.models.streak import StreakCreate, StreakResponse, StreakUpdate
+from app.models.streak import StreakResponse, StreakUpdateRequest
+from app.services.streak_service import streak_service
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ async def get_db() -> AsyncIOMotorDatabase:
     response_model=StreakResponse,
     status_code=status.HTTP_200_OK,
     summary="Get habit streak by user ID and habit ID",
-    description="Retrieve streak from Streaks collection"
+    description="Retrieve streak from Streaks collection. Returns default values if streak doesn't exist."
 )
 async def get_user_habit_streak_by_id(
     userId: str,
@@ -35,26 +34,19 @@ async def get_user_habit_streak_by_id(
 ):
     """
     Get habit streak by user ID and habit ID.
+    If no streak exists, returns a default response with streak = 0.
     """
     try:
         logger.info(f"GET /getUserHabitStreakById - userId: {userId}, habitId: {habitId}")
-        streak = await db.streaks.find_one({
-            "userId": userId,
-            "habitId": habitId
-        })
         
-        if not streak:
-            logger.warning(f"Streak not found - userId: {userId}, habitId: {habitId}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Streak not found for userId={userId}, habitId={habitId}"
-            )
+        result = await streak_service.get_streak_by_id(db, userId, habitId)
+        return result
         
-        streak["_id"] = str(streak["_id"])
-        logger.info(f"Successfully retrieved streak - _id: {streak['_id']}")
-        return StreakResponse(**streak)
-    except HTTPException:
-        raise
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve)
+        )
     except Exception as e:
         logger.error(f"Error retrieving streak: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
@@ -64,73 +56,38 @@ async def get_user_habit_streak_by_id(
         )
 
 
-@router.put(
+@router.post(
     "/updateUserHabitStreakById",
     response_model=StreakResponse,
     status_code=status.HTTP_200_OK,
-    summary="Update habit streak",
-    description="Update streak in Streaks collection by user ID and habit ID"
+    summary="Update habit streak with check-in date",
+    description="Update streak in Streaks collection. Increments streak for consecutive days, resets for missed days."
 )
 async def update_user_habit_streak_by_id(
-    userId: str,
-    habitId: str,
-    streak_update: StreakUpdate,
+    request: StreakUpdateRequest,
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """
     Update streak by user ID and habit ID.
-    Creates a new streak if it doesn't exist.
+    - If user checks in on consecutive day, increment currentStreak
+    - If day is missed, reset currentStreak to 1
+    - Update longestStreak if current exceeds it
+    - Save or update data in the streaks collection
     """
     try:
         logger.info(
-            f"PUT /updateUserHabitStreakById - userId: {userId}, habitId: {habitId}, "
-            f"update_data: {streak_update.model_dump(exclude_none=True)}"
+            f"POST /updateUserHabitStreakById - userId: {request.userId}, "
+            f"habitId: {request.habitId}, checkInDate: {request.checkInDate}"
         )
-        # Check if streak exists
-        existing = await db.streaks.find_one({
-            "userId": userId,
-            "habitId": habitId
-        })
         
-        now = datetime.now(timezone.utc)
-        update_data = streak_update.model_dump(exclude_none=True)
-        update_data["updated_at"] = now
+        result = await streak_service.update_streak_by_checkin(db, request)
+        return result
         
-        if existing:
-            logger.debug(f"Updating existing streak - _id: {existing['_id']}")
-            # Update existing streak
-            # Update longest streak if current streak is higher
-            if "currentStreak" in update_data:
-                current_streak = update_data["currentStreak"]
-                longest_streak = existing.get("longestStreak", 0)
-                if current_streak > longest_streak:
-                    logger.debug(f"Updating longest streak from {longest_streak} to {current_streak}")
-                    update_data["longestStreak"] = current_streak
-            
-            await db.streaks.update_one(
-                {"_id": existing["_id"]},
-                {"$set": update_data}
-            )
-            updated_doc = await db.streaks.find_one({"_id": existing["_id"]})
-            logger.info(f"Successfully updated streak - _id: {updated_doc['_id']}")
-        else:
-            logger.debug("Creating new streak")
-            # Create new streak
-            new_streak = {
-                "userId": userId,
-                "habitId": habitId,
-                "currentStreak": update_data.get("currentStreak", 0),
-                "longestStreak": update_data.get("longestStreak", 0),
-                "lastCheckIn": update_data.get("lastCheckIn", now),
-                "created_at": now,
-                "updated_at": now
-            }
-            result = await db.streaks.insert_one(new_streak)
-            updated_doc = await db.streaks.find_one({"_id": result.inserted_id})
-            logger.info(f"Successfully created streak - _id: {updated_doc['_id']}")
-        
-        updated_doc["_id"] = str(updated_doc["_id"])
-        return StreakResponse(**updated_doc)
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve)
+        )
     except Exception as e:
         logger.error(f"Error updating streak: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")

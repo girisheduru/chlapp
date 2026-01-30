@@ -23,6 +23,21 @@ async def connect_to_mongo():
         # Test the connection
         await client.admin.command('ping')
         logger.info(f"Successfully connected to MongoDB: {settings.mongodb_url}")
+        
+        # Create indexes for streaks collection (if they don't exist)
+        db = client[settings.database_name]
+        try:
+            # Create compound unique index on userId and habitId
+            await db.streaks.create_index(
+                [("userId", 1), ("habitId", 1)],
+                unique=True,
+                name="userId_habitId_unique"
+            )
+            logger.info("Created index on streaks collection: userId_habitId_unique")
+        except Exception as e:
+            # Index might already exist, which is fine
+            logger.debug(f"Index creation note: {str(e)}")
+            
     except Exception as e:
         logger.error(f"Error connecting to MongoDB: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")

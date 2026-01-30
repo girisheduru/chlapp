@@ -2,7 +2,7 @@
 Pydantic schemas for Streak-related models.
 """
 from pydantic import BaseModel, Field, ConfigDict
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 
 
@@ -19,17 +19,28 @@ class StreakCreate(BaseModel):
         }
     )
     
-    userId: str = Field(..., description="User ID")
-    habitId: str = Field(..., description="Habit ID")
+    userId: str = Field(..., description="User ID (ObjectId)")
+    habitId: str = Field(..., description="Habit ID (ObjectId)")
     currentStreak: int = Field(0, ge=0, description="Current streak count")
     longestStreak: int = Field(0, ge=0, description="Longest streak achieved")
+    lastCheckInDate: Optional[date] = Field(None, description="Last check-in date")
 
 
-class StreakUpdate(BaseModel):
-    """Model for updating a streak."""
-    currentStreak: Optional[int] = Field(None, ge=0, description="Current streak count")
-    longestStreak: Optional[int] = Field(None, ge=0, description="Longest streak achieved")
-    lastCheckIn: Optional[datetime] = Field(None, description="Last check-in timestamp")
+class StreakUpdateRequest(BaseModel):
+    """Model for updating a streak with check-in date."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "userId": "user123",
+                "habitId": "habit456",
+                "checkInDate": "2024-01-25"
+            }
+        }
+    )
+    
+    userId: str = Field(..., description="User ID (ObjectId)")
+    habitId: str = Field(..., description="Habit ID (ObjectId)")
+    checkInDate: str = Field(..., description="Check-in date in YYYY-MM-DD format")
 
 
 class StreakResponse(BaseModel):
@@ -39,11 +50,6 @@ class StreakResponse(BaseModel):
         from_attributes=True
     )
     
-    id: str = Field(..., alias="_id")
-    userId: str
-    habitId: str
-    currentStreak: int
-    longestStreak: int
-    lastCheckIn: Optional[datetime] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    currentStreak: int = Field(..., description="Current streak count")
+    longestStreak: int = Field(..., description="Longest streak achieved")
+    lastCheckInDate: Optional[date] = Field(None, description="Last check-in date")

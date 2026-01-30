@@ -1,67 +1,83 @@
-# CHL API - FastAPI with MongoDB
+# CHL API - FastAPI Backend
 
-A FastAPI application that connects to MongoDB using Motor (async MongoDB driver) for storing and retrieving data.
+A FastAPI application with MongoDB integration for habit tracking, streak management, and LLM-powered habit generation.
 
 ## Features
 
-- ✅ FastAPI framework
+- ✅ FastAPI framework with async support
 - ✅ Motor (Async MongoDB driver)
-- ✅ Environment variable configuration
-- ✅ Pydantic models with 8 fields and validation
-- ✅ POST endpoint to create records
-- ✅ GET endpoints to retrieve records
-- ✅ Comprehensive error handling
-- ✅ Async/await support
-- ✅ Clean project structure
+- ✅ Service layer architecture (habit_service, streak_service, llm_service)
+- ✅ RESTful API endpoints for habits, streaks, and reflections
+- ✅ LLM service integration for generating habit options, identities, and cues
+- ✅ CORS enabled for frontend integration
+- ✅ Comprehensive error handling and logging
+- ✅ Automatic database index creation
+- ✅ Data validation with Pydantic models
 
 ## Project Structure
 
 ```
-chlapi/
+backend/
 ├── app/
-│   ├── __init__.py
-│   ├── main.py          # FastAPI application entry point
-│   ├── database.py      # MongoDB connection using Motor
-│   ├── schemas.py       # Pydantic models with 8 fields
-│   └── routes.py        # API endpoints (POST, GET)
-├── requirements.txt     # Python dependencies
-├── .env.example         # Environment variables template
-└── README.md           # This file
+│   ├── core/
+│   │   ├── config.py          # Settings and configuration
+│   │   └── logging_config.py  # Logging setup
+│   ├── models/
+│   │   ├── habit.py           # Habit Pydantic models
+│   │   ├── streak.py          # Streak Pydantic models
+│   │   └── reflection.py      # Reflection Pydantic models
+│   ├── routers/
+│   │   ├── habits.py          # Habit API routes
+│   │   ├── streaks.py         # Streak API routes
+│   │   └── reflections.py    # Reflection API routes
+│   ├── services/
+│   │   ├── habit_service.py   # Habit business logic
+│   │   ├── streak_service.py  # Streak business logic
+│   │   └── llm_service.py     # LLM integration
+│   ├── utils/
+│   │   └── prompts.py         # LLM prompt templates
+│   ├── database.py           # MongoDB connection
+│   └── main.py               # FastAPI app entry point
+├── requirements.txt
+├── .env.example
+├── migrate_streaks_to_strings.py  # Migration script
+├── test_streak_insert.py          # Test script
+└── README.md
 ```
 
 ## Installation
 
-> **Note for macOS users:** macOS uses zsh as the default shell. All commands below work in both zsh and bash.
-
-1. **Clone the repository** (if applicable)
-
-2. **Create a virtual environment:**
-   ```zsh
+1. **Create a virtual environment:**
+   ```bash
    python3 -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Install dependencies:**
-   ```zsh
+2. **Install dependencies:**
+   ```bash
    pip install -r requirements.txt
    ```
 
-4. **Set up environment variables:**
-   ```zsh
-   cp .env.example .env
+3. **Set up environment variables:**
+   ```bash
+   cp .example.env .env
    ```
    
-   Edit `.env` and set your MongoDB connection string:
-   ```
+   Edit `.env` and set:
+   ```env
    MONGODB_URL=mongodb://localhost:27017
    DATABASE_NAME=chl_datastore_db
+   LLM_API_KEY=your_api_key_here  # Optional, required for LLM features
+   LLM_MODEL=gpt-4
+   LLM_TEMPERATURE=0.7
+   LLM_MAX_TOKENS=1000
    ```
 
 ## Running the Application
 
 Start the FastAPI server using Uvicorn:
 
-```zsh
+```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -72,246 +88,129 @@ The API will be available at:
 
 ## API Endpoints
 
-### POST /api/v1/data
-Create a new data record.
+All endpoints are prefixed with `/api/v1`.
 
-**Request Body:**
-```json
-{
-  "name": "John Doe",
-  "email": "john.doe@example.com",
-  "age": 30,
-  "status": "active",
-  "score": 85.5,
-  "is_active": true,
-  "tags": ["user", "premium"],
-  "metadata": {
-    "department": "Engineering",
-    "level": "senior"
-  }
-}
-```
+### Habits
 
-**Response:** 201 Created
-```json
-{
-  "_id": "507f1f77bcf86cd799439011",
-  "name": "John Doe",
-  "email": "john.doe@example.com",
-  "age": 30,
-  "status": "active",
-  "score": 85.5,
-  "is_active": true,
-  "tags": ["user", "premium"],
-  "metadata": {
-    "department": "Engineering",
-    "level": "senior"
-  },
-  "created_at": "2024-01-01T12:00:00"
-}
-```
+- `POST /api/v1/saveUserHabitPreference` - Save or update user habit preferences
+- `GET /api/v1/GetUserHabitById` - Get habit by userId and habitId
+- `POST /api/v1/generateIdentities` - Generate identity options using LLM
+- `POST /api/v1/generateShortHabitOptions` - Generate short habit options using LLM
+- `POST /api/v1/generateFullHabitOptions` - Generate full habit options using LLM
+- `POST /api/v1/generateObviousCues` - Generate obvious cues using LLM
 
-### GET /api/v1/data
-Retrieve all data records with pagination.
+### Streaks
 
-**Query Parameters:**
-- `skip` (optional): Number of records to skip (default: 0)
-- `limit` (optional): Maximum records to return (default: 100, max: 1000)
+- `GET /api/v1/getUserHabitStreakById` - Get habit streak by userId and habitId
+  - Returns default values (0, 0, null) if streak doesn't exist
+- `POST /api/v1/updateUserHabitStreakById` - Update streak with check-in date
+  - Increments streak for consecutive days
+  - Resets to 1 for missed days
+  - Updates longest streak if exceeded
 
-**Response:** 200 OK
-```json
-[
-  {
-    "_id": "507f1f77bcf86cd799439011",
-    "name": "John Doe",
-    ...
-  }
-]
-```
+### Reflections
 
-### GET /api/v1/data/{record_id}
-Retrieve a specific record by ID.
+- `GET /api/v1/getReflectionInputs` - Get reflection inputs using LLM
+  - Requires userId query parameter
 
-**Response:** 200 OK or 404 Not Found
+### Health
 
-## Data Model
+- `GET /health` - Health check endpoint
+- `GET /` - Root endpoint with API info
 
-The Pydantic model includes exactly 8 fields:
+## Database Collections
 
-1. **name** (str): Name of the record (1-100 characters)
-2. **email** (EmailStr): Valid email address
-3. **age** (int): Age between 0 and 150
-4. **status** (str): Status string
-5. **score** (float): Score between 0.0 and 100.0
-6. **is_active** (bool): Active status flag
-7. **tags** (list[str]): List of tags
-8. **metadata** (dict): Additional metadata dictionary
+### Habits Collection
+- **Collection name**: `habits`
+- **Fields**:
+  - `userId` (string): Format `user_<timestamp>_<random>`
+  - `habitId` (string): Format `habit_<timestamp>_<random>`
+  - `preferences` (object): Contains onboarding data
+  - `created_at` (datetime)
+  - `updated_at` (datetime)
 
-## Error Handling
+### Streaks Collection
+- **Collection name**: `streaks`
+- **Fields**:
+  - `userId` (string): Format `user_<timestamp>_<random>` (matches habits)
+  - `habitId` (string): Format `habit_<timestamp>_<random>` (matches habits)
+  - `currentStreak` (int): Current consecutive days
+  - `longestStreak` (int): Longest streak achieved
+  - `lastCheckInDate` (datetime): Last check-in date
+  - `createdAt` (datetime)
+  - `updatedAt` (datetime)
+- **Index**: Unique compound index on `(userId, habitId)`
 
-The API includes comprehensive error handling:
-- **400 Bad Request**: Invalid input data or ObjectId format
-- **404 Not Found**: Record not found
-- **500 Internal Server Error**: Database or server errors
+### Reflections Collection
+- **Collection name**: `reflections`
+- **Fields**: User reflection data
+
+## Services
+
+### HabitService
+Located in `app/services/habit_service.py`:
+- `save_habit_preference()`: Save or update habit preferences
+- `get_habit_by_id()`: Get habit by userId and habitId
+- `get_habit_context()`: Get habit context for LLM prompts
+
+### StreakService
+Located in `app/services/streak_service.py`:
+- `get_streak_by_id()`: Get streak by userId and habitId (returns defaults if not found)
+- `update_streak_by_checkin()`: Update streak based on check-in date with business logic
+
+### LLMService
+Located in `app/services/llm_service.py`:
+- `generate_text()`: Generate text using LLM API
+- `generate_list()`: Generate list of items using LLM API
+
+## Models
+
+### Habit Models (`app/models/habit.py`)
+- `HabitPreferenceCreate`: For creating/updating habits
+- `HabitPreferenceResponse`: Response model for habits
+- `IdentityGenerationRequest/Response`: For identity generation
+- `HabitOptionRequest/Response`: For habit option generation
+- `ObviousCueRequest/Response`: For cue generation
+
+### Streak Models (`app/models/streak.py`)
+- `StreakCreate`: For creating streaks
+- `StreakUpdateRequest`: For updating streaks with check-in date
+- `StreakResponse`: Response model for streaks
+
+### Reflection Models (`app/models/reflection.py`)
+- `ReflectionInputResponse`: Response model for reflection inputs
 
 ## MongoDB Setup
 
 ### Installing MongoDB Locally
 
 #### macOS (using Homebrew)
-
-> **Note:** macOS uses zsh as the default shell. All commands below work in zsh (and bash).
-
-1. **Install Homebrew** (if not already installed):
-   ```zsh
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   ```
-   
-   Or if you prefer to use zsh directly:
-   ```zsh
-   curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | /bin/bash
-   ```
-   
-   After installation, you may need to add Homebrew to your PATH. Add this to your `~/.zshrc`:
-   ```zsh
-   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
-   eval "$(/opt/homebrew/bin/brew shellenv)"
-   ```
- > **Note:** Restart the terminal completely
-  
-   For Intel Macs, use:
-   ```zsh
-   echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.zshrc
-   eval "$(/usr/local/bin/brew shellenv)"
-   ```
-
-2. **Install MongoDB Community Edition**:
-   ```zsh
-   brew tap mongodb/brew
-   brew install mongodb-community
-   ```
-
-3. **Start MongoDB service**:
-   ```zsh
-   brew services start mongodb-community
-   ```
-
-4. **Verify MongoDB is running**:
-   ```zsh
-   brew services list
-   # Or check the process
-   ps aux | grep mongod
-   ```
-
-5. **Test MongoDB connection** (optional):
-   ```zsh
-   mongosh
-   # Or if using older version: mongo
-   ```
+```bash
+brew tap mongodb/brew
+brew install mongodb-community
+brew services start mongodb-community
+```
 
 #### Linux (Ubuntu/Debian)
+```bash
+curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+sudo apt-get update
+sudo apt-get install -y mongodb-org
+sudo systemctl start mongod
+```
 
-1. **Import MongoDB public GPG key**:
-   ```bash
-   curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
-   ```
-
-2. **Create MongoDB list file**:
-   ```bash
-   echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-   ```
-
-3. **Update package database**:
-   ```bash
-   sudo apt-get update
-   ```
-
-4. **Install MongoDB**:
-   ```bash
-   sudo apt-get install -y mongodb-org
-   ```
-
-5. **Start MongoDB service**:
-   ```bash
-   sudo systemctl start mongod
-   sudo systemctl enable mongod  # Enable auto-start on boot
-   ```
-
-6. **Verify MongoDB is running**:
-   ```bash
-   sudo systemctl status mongod
-   ```
-
-#### Windows
-
-1. **Download MongoDB Community Edition**:
-   - Visit: https://www.mongodb.com/try/download/community
-   - Select Windows as the platform
-   - Download the MSI installer
-
-2. **Run the installer**:
-   - Run the downloaded `.msi` file
-   - Choose "Complete" installation
-   - Select "Install MongoDB as a Service"
-   - Choose "Run service as Network Service user"
-   - Keep "Install MongoDB Compass" checked (optional GUI tool)
-
-3. **Verify installation**:
-   - MongoDB should start automatically as a Windows service
-   - Check Services (services.msc) for "MongoDB" service
-
-4. **Add MongoDB to PATH** (if needed):
-   - Default installation path: `C:\Program Files\MongoDB\Server\<version>\bin`
-   - Add this path to your system PATH environment variable
-
-#### Using Docker (Cross-platform)
-
-1. **Pull MongoDB Docker image**:
-   ```bash
-   docker pull mongo:latest
-   ```
-
-2. **Run MongoDB container**:
-   ```bash
-   docker run -d -p 27017:27017 --name mongodb mongo:latest
-   ```
-
-3. **Verify container is running**:
-   ```bash
-   docker ps
-   ```
-
-4. **Stop MongoDB container** (when needed):
-   ```bash
-   docker stop mongodb
-   ```
-
-5. **Start MongoDB container again**:
-   ```bash
-   docker start mongodb
-   ```
-
-### Starting MongoDB Service
-
-After installation, ensure MongoDB is running:
-
-- **macOS**: `brew services start mongodb-community`
-- **Linux**: `sudo systemctl start mongod`
-- **Windows**: MongoDB runs as a service automatically
-- **Docker**: `docker start mongodb`
+#### Docker
+```bash
+docker run -d -p 27017:27017 --name mongodb mongo:latest
+```
 
 ### Verifying MongoDB Connection
 
 Test your MongoDB connection:
-
-```zsh
-# Using mongosh (MongoDB Shell)
+```bash
 mongosh
 # Or for older versions: mongo
-
-# In the MongoDB shell, run:
-show dbs
-exit
 ```
 
 Or test from Python:
@@ -328,11 +227,6 @@ async def test_connection():
 asyncio.run(test_connection())
 ```
 
-### MongoDB Atlas (Cloud)
-1. Create a cluster on MongoDB Atlas
-2. Get your connection string
-3. Update `.env` with: `MONGODB_URL=mongodb+srv://username:password@cluster.mongodb.net/`
-
 ## Development
 
 The application uses:
@@ -340,6 +234,73 @@ The application uses:
 - **Motor**: Async MongoDB driver
 - **Pydantic**: Data validation using Python type annotations
 - **Uvicorn**: ASGI server
+- **Python-dotenv**: Environment variable management
+
+### Running in Development Mode
+
+```bash
+uvicorn app.main:app --reload
+```
+
+The server will auto-reload on code changes.
+
+## Migration Scripts
+
+### Migrate Streaks to String Format
+
+If you have streaks with ObjectId format that need to be converted to strings:
+
+```bash
+python3 migrate_streaks_to_strings.py
+```
+
+This script:
+- Converts ObjectId userId/habitId to strings
+- Merges duplicate entries
+- Removes old ObjectId entries
+
+## Testing
+
+### Test Streak Insertion
+
+```bash
+python3 test_streak_insert.py
+```
+
+This script tests:
+- MongoDB connection
+- Streak collection creation
+- Document insertion
+- Data retrieval
+
+## Troubleshooting
+
+### MongoDB Connection Issues
+
+1. Verify MongoDB is running:
+   ```bash
+   # macOS
+   brew services list
+   
+   # Linux
+   sudo systemctl status mongod
+   ```
+
+2. Check database and collections:
+   ```bash
+   mongosh chl_datastore_db
+   show collections
+   db.streaks.find().pretty()
+   ```
+
+### Collection Not Created
+
+MongoDB creates collections automatically on first insert. If a collection doesn't appear:
+1. Make an API call that inserts data
+2. Check MongoDB: `db.streaks.find()` or `db.habits.find()`
+3. Verify database name in `.env`: `DATABASE_NAME=chl_datastore_db`
+
+See `VERIFY_STREAKS.md` for detailed verification steps.
 
 ## License
 

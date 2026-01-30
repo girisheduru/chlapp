@@ -9,7 +9,7 @@ from app.models.habit import (
 from app.models.streak import (
     StreakCreate,
     StreakResponse,
-    StreakUpdate
+    StreakUpdateRequest
 )
 from app.models.reflection import (
     ReflectionInputResponse
@@ -21,6 +21,6 @@ __all__ = [
     "HabitPreferences",
     "StreakCreate",
     "StreakResponse",
-    "StreakUpdate",
+    "StreakUpdateRequest",
     "ReflectionInputResponse",
 ]

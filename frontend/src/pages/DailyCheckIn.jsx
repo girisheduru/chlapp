@@ -1,16 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { colors, fonts } from '../constants/designTokens';
 import { animations } from '../constants/animations';
 import { obstacleOptions, helperOptions, defaultUserData } from '../data/checkinData';
 import { Button, Card, ActionOption, SelectChip, StoneJar, TodaysStone, Confetti, StreakDisplay } from '../components';
+import { streaksAPI } from '../services/api';
+import { getUserId, getHabitId } from '../utils/userStorage';
 
 const DailyCheckIn = () => {
   const [currentView, setCurrentView] = useState('checkin');
   const [showConfetti, setShowConfetti] = useState(false);
-  const [streakCount, setStreakCount] = useState(7);
-  const [totalStones, setTotalStones] = useState(23);
+  const [streakCount, setStreakCount] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
+  const [totalStones, setTotalStones] = useState(0);
   const [newStoneAdded, setNewStoneAdded] = useState(false);
   const [showStoneAnimation, setShowStoneAnimation] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Get userId and habitId from localStorage (set during onboarding)
+  // Uses the same format as habits collection: 'user_<timestamp>_<random>' and 'habit_<timestamp>_<random>'
+  const [userId] = useState(() => {
+    return getUserId();
+  });
+  const [habitId] = useState(() => {
+    return getHabitId();
+  });
 
   // Check-in state
   const [selectedAction, setSelectedAction] = useState(null); // 'baseline', 'capacity', 'other', 'nottoday'
@@ -24,6 +38,34 @@ const DailyCheckIn = () => {
 
   // User's data (from onboarding)
   const userData = defaultUserData;
+
+  // Load streak data on component mount
+  useEffect(() => {
+    const loadStreakData = async () => {
+      if (!userId || !habitId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        const streakData = await streaksAPI.getUserHabitStreakById(userId, habitId);
+        setStreakCount(streakData.currentStreak || 0);
+        setLongestStreak(streakData.longestStreak || 0);
+        // Use currentStreak as totalStones for now (can be updated if you have separate stone count)
+        setTotalStones(streakData.currentStreak || 0);
+      } catch (error) {
+        console.error('Error loading streak data:', error);
+        setError('Failed to load streak data');
+        // On error, keep default values (0) - graceful degradation
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStreakData();
+  }, [userId, habitId]);
 
   // Toggle multi-select (max 3)
   const toggleObstacle = (id) => {
@@ -45,11 +87,42 @@ const DailyCheckIn = () => {
   };
 
   // Handle save check-in
-  const handleSaveCheckin = () => {
+  const handleSaveCheckin = async () => {
     if (selectedAction === 'nottoday') {
       setCurrentView('recovery');
-    } else {
+      return;
+    }
+
+    try {
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date();
+      const checkInDate = today.toISOString().split('T')[0];
+
+      // Update streak via API
+      const updatedStreak = await streaksAPI.updateUserHabitStreakById({
+        userId,
+        habitId,
+        checkInDate,
+      });
+
+      // Update local state with API response
+      setStreakCount(updatedStreak.currentStreak);
+      setLongestStreak(updatedStreak.longestStreak);
+      setTotalStones(updatedStreak.currentStreak);
+
       // Add stone animation
+      setShowStoneAnimation(true);
+      setTimeout(() => {
+        setNewStoneAdded(true);
+      }, 800);
+      setTimeout(() => {
+        setCurrentView('completed');
+        setShowConfetti(true);
+      }, 1500);
+      setTimeout(() => setShowConfetti(false), 4500);
+    } catch (error) {
+      console.error('Error updating streak:', error);
+      // Still show success UI even if API call fails (graceful degradation)
       setShowStoneAnimation(true);
       setTimeout(() => {
         setNewStoneAdded(true);
@@ -145,7 +218,27 @@ const DailyCheckIn = () => {
         </div>
 
         {/* Streak Display - Above Stone Visual */}
-        <StreakDisplay streak={streakCount} totalStones={totalStones} />
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: colors.textMuted, fontFamily: fonts.body, fontSize: 14 }}>
+            Loading streak data...
+          </div>
+        ) : (
+          <StreakDisplay streak={streakCount} totalStones={totalStones} />
+        )}
+        {error && (
+          <div style={{
+            padding: '12px',
+            background: colors.warning,
+            borderRadius: 8,
+            marginBottom: 16,
+            textAlign: 'center',
+            fontSize: 12,
+            color: colors.warningText,
+            fontFamily: fonts.body,
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
 
         {/* Stone Collection Visual */}
         <div style={{

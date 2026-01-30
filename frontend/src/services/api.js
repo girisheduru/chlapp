@@ -60,6 +60,10 @@ export const streaksAPI = {
   getAll: () => apiRequest('/streaks'),
   getById: (id) => apiRequest(`/streaks/${id}`),
   create: (data) => apiRequest('/streaks', { method: 'POST', body: data }),
+  getUserHabitStreakById: (userId, habitId) => 
+    apiRequest(`/getUserHabitStreakById?userId=${userId}&habitId=${habitId}`),
+  updateUserHabitStreakById: (data) => 
+    apiRequest('/updateUserHabitStreakById', { method: 'POST', body: data }),
 };
 
 /**
