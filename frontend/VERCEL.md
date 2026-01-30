@@ -1,25 +1,42 @@
-# Vercel deployment
+# Deploy Chlapp on Vercel
 
-## Fix for NOT_FOUND (404) on client routes
+## What’s configured
 
-`vercel.json` in this folder configures **rewrites** so that paths like `/checkin` and `/onboarding` are served `index.html` instead of returning 404. The React app then loads and React Router shows the correct page.
+- **`chlapp/vercel.json`** – Build and deploy the frontend from the `chlapp` folder:
+  - Install and build run in `frontend/`
+  - Output is `frontend/dist`
+  - SPA rewrites so `/`, `/checkin`, `/onboarding` (and any non-`/api` path) serve `index.html` and React Router works.
 
-- **Rewrite used:** `/((?!api/).*)` → `/index.html`  
-  So any path that does **not** start with `api/` is served the SPA shell; `/api/*` is left for your backend or future serverless functions.
+- **`frontend/src/services/api.js`** – Uses `VITE_API_URL` in production so the frontend can call a backend hosted elsewhere.
 
-## Vercel project settings
+## Deploy steps
 
-If the Vercel project root is this repo (e.g. `CTCHack` or `chlapp`):
+1. **Connect the repo**  
+   In Vercel: New Project → Import your repo.  
+   Set **Root Directory** to `chlapp` (or leave as repo root if the repo root is already `chlapp`).
 
-1. **Root Directory:** `frontend` (or `chlapp/frontend` if deploying from `CTCHack`).
-2. **Build Command:** `npm run build`
-3. **Output Directory:** `dist` (Vite default)
+2. **Deploy**  
+   Vercel will use `chlapp/vercel.json`. No need to set Build Command or Output Directory unless you want to override.
 
-If the project root is already set to `frontend`, the defaults are usually correct.
+3. **Backend (required for API)**  
+   The backend is Python/FastAPI and is not run on Vercel. Host it elsewhere (e.g. Railway, Render).
 
-## Backend / API in production
+   In the Vercel project:
+   - **Settings → Environment Variables**
+   - Add: `VITE_API_URL` = your backend origin, e.g. `https://your-app.railway.app`  
+     (no trailing slash)
 
-The app uses relative URLs like `/api/v1/...`. On Vercel you only deploy the frontend, so:
+   Redeploy so the frontend is built with this value. The app will call `{VITE_API_URL}/api/v1/...` in production.
 
-- Either host the backend elsewhere (e.g. Railway) and set an env var such as `VITE_API_URL` and use it in `api.js` as the base URL in production.
-- Or add a rewrite in `vercel.json` to proxy `/api` to your backend (add it **before** the SPA rewrite).
+4. **Backend CORS**  
+   On the backend (Railway, etc.), set `CORS_ORIGINS` to your Vercel URL(s), e.g.  
+   `CORS_ORIGINS=https://your-app.vercel.app,https://your-app-xxx.vercel.app`  
+   so the browser allows requests from the Vercel frontend.
+
+## Optional: deploy only the frontend as root
+
+If you set **Root Directory** to `chlapp/frontend` in Vercel:
+
+- Build uses the frontend `package.json` (default `npm run build`, output `dist`).
+- `frontend/vercel.json` applies (same SPA rewrites).
+- Still set `VITE_API_URL` in Vercel if you use an external backend.

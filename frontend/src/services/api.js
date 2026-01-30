@@ -1,8 +1,10 @@
 /**
  * API service for making HTTP requests to the backend
+ * In production (Vercel), set VITE_API_URL to your backend origin (e.g. https://your-api.railway.app)
  */
 
-const API_BASE_URL = '/api/v1';
+const API_BASE_URL =
+  (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api/v1';
 
 /**
  * Generic fetch wrapper with error handling

@@ -16,7 +16,7 @@ from app.core.logging_config import setup_logging
 logger = setup_logging()
 
 from app.database import connect_to_mongo, close_mongo_connection
-from app.core.config import settings
+from app.core.config import settings, get_cors_origins
 from app.routers import habits, streaks, reflections
 
 
@@ -53,15 +53,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS
+# Configure CORS (set CORS_ORIGINS for production, e.g. https://your-app.vercel.app)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -5,12 +5,25 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 
 
+def _default_cors_origins() -> list[str]:
+    return [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ]
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
     # MongoDB settings
     mongodb_url: str = "mongodb://localhost:27017"
     database_name: str = "chl_datastore_db"
+    
+    # CORS: comma-separated origins (e.g. https://chlapp.vercel.app,https://*.vercel.app)
+    # Vercel preview URLs use *.vercel.app
+    cors_origins: Optional[str] = None
     
     # LLM settings
     llm_api_key: Optional[str] = None
@@ -31,3 +44,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def get_cors_origins() -> list[str]:
+    """CORS allowed origins: CORS_ORIGINS env if set, else default localhost list."""
+    if settings.cors_origins:
+        return [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    return _default_cors_origins()
