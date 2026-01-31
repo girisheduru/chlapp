@@ -23,7 +23,9 @@ async def connect_to_mongo():
         # Use certifi for Atlas (mongodb+srv) - fixes SSL handshake in Railway/container environments
         kwargs = {}
         if "mongodb+srv" in settings.mongodb_url or "mongodb.net" in settings.mongodb_url:
+            kwargs["tls"] = True
             kwargs["tlsCAFile"] = certifi.where()
+            logger.info(f"Using certifi CA bundle: {certifi.where()}")
         client = AsyncIOMotorClient(settings.mongodb_url, **kwargs)
         # Test the connection
         await client.admin.command('ping')
