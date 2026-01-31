@@ -3,6 +3,7 @@ MongoDB database connection module using Motor (async driver).
 """
 import logging
 import traceback
+import certifi
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Optional
 
@@ -19,7 +20,11 @@ async def connect_to_mongo():
     global client
     try:
         logger.info(f"Connecting to MongoDB at {settings.mongodb_url}")
-        client = AsyncIOMotorClient(settings.mongodb_url)
+        # Use certifi for Atlas (mongodb+srv) - fixes SSL handshake in Railway/container environments
+        kwargs = {}
+        if "mongodb+srv" in settings.mongodb_url or "mongodb.net" in settings.mongodb_url:
+            kwargs["tlsCAFile"] = certifi.where()
+        client = AsyncIOMotorClient(settings.mongodb_url, **kwargs)
         # Test the connection
         await client.admin.command('ping')
         logger.info(f"Successfully connected to MongoDB: {settings.mongodb_url}")

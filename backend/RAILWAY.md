@@ -19,18 +19,29 @@ In Railway → your service → **Variables** tab, add:
 | `LLM_MODEL` | `gpt-4` or `gpt-3.5-turbo` | Optional |
 | `CORS_ORIGINS` | `https://chlapp.vercel.app` (your Vercel URL) | ✅ |
 
-### MongoDB Atlas (if you don't have a MongoDB yet)
+### MongoDB: Local vs Railway
+
+| Environment | MONGODB_URL | Where to set |
+|-------------|-------------|--------------|
+| **Local** | `mongodb://localhost:27017` | `.env` (or default) |
+| **Railway** | Atlas connection string | Railway → Variables |
+
+Your local `.env` keeps localhost. Railway uses the `MONGODB_URL` you set in Variables.
+
+### MongoDB Atlas (if you don't have a cloud MongoDB yet)
 
 1. Go to [mongodb.com/atlas](https://www.mongodb.com/atlas) → Create free cluster
 2. Create a database user (username + password)
 3. Network Access → Add `0.0.0.0/0` (allow from anywhere)
 4. Connect → Drivers → Copy the connection string
-5. Replace `<password>` with your database user password
+5. Replace `<password>` with your database user password (URL-encode special chars!)
 
 Example:
 ```
 mongodb+srv://myuser:mypassword@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
 ```
+
+Add this as `MONGODB_URL` in Railway → Variables.
 
 ## 3. Deploy
 
