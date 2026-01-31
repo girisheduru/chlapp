@@ -1,9 +1,13 @@
 """
 MongoDB database connection module using Motor (async driver).
+
+Supports:
+- Railway MongoDB plugin (recommended for Railway deployments)
+- Local MongoDB (for development)
+- MongoDB Atlas (if needed, may require additional TLS config)
 """
 import logging
 import traceback
-import ssl
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Optional
 
@@ -26,20 +30,9 @@ async def connect_to_mongo():
             safe_url = parts[0].rsplit(":", 1)[0] + ":****@" + parts[1]
         logger.info(f"Connecting to MongoDB at {safe_url}")
         
-        # For Atlas connections in containerized environments
-        kwargs = {}
-        if "mongodb+srv" in settings.mongodb_url or "mongodb.net" in settings.mongodb_url:
-            # Create a permissive SSL context to work around Railway/OpenSSL issues
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            # Force TLS 1.2 (some environments have issues with TLS 1.3 + Atlas)
-            ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-            ctx.maximum_version = ssl.TLSVersion.TLSv1_2
-            kwargs["tlsCAFile"] = None
-            kwargs["ssl_context"] = ctx
-            logger.info("Using custom SSL context with TLS 1.2")
-        client = AsyncIOMotorClient(settings.mongodb_url, **kwargs)
+        # Simple connection - works for Railway MongoDB and local MongoDB
+        # Railway MongoDB plugin provides a standard mongodb:// URL with no SSL required
+        client = AsyncIOMotorClient(settings.mongodb_url)
         # Test the connection
         await client.admin.command('ping')
         logger.info(f"Successfully connected to MongoDB: {settings.mongodb_url}")

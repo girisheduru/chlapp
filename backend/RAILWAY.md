@@ -7,13 +7,28 @@
 3. Select your `CTCHack` repo
 4. When prompted, set **Root Directory** to `chlapp/backend`
 
-## 2. Set Environment Variables
+## 2. Add MongoDB (Railway Plugin - Recommended)
 
-In Railway → your service → **Variables** tab, add:
+Using Railway's built-in MongoDB avoids SSL/TLS issues with external providers.
+
+1. In your Railway project, click **+ New** → **Database** → **MongoDB**
+2. Railway creates a MongoDB instance and provides connection variables
+3. In your backend service → **Variables** → **Add Reference**:
+   - Reference `MONGO_URL` from the MongoDB service as `MONGODB_URL`
+   - Or copy the connection string directly
+
+The connection string looks like:
+```
+mongodb://mongo:password@mongodb.railway.internal:27017
+```
+
+## 3. Set Other Environment Variables
+
+In Railway → your backend service → **Variables** tab, add:
 
 | Variable | Value | Required |
 |----------|-------|----------|
-| `MONGODB_URL` | Your MongoDB connection string (e.g. from MongoDB Atlas) | ✅ |
+| `MONGODB_URL` | (reference from MongoDB service or paste directly) | ✅ |
 | `DATABASE_NAME` | `chl_datastore_db` (or your preferred name) | ✅ |
 | `LLM_API_KEY` | Your OpenAI API key | ✅ |
 | `LLM_MODEL` | `gpt-4` or `gpt-3.5-turbo` | Optional |
@@ -24,24 +39,19 @@ In Railway → your service → **Variables** tab, add:
 | Environment | MONGODB_URL | Where to set |
 |-------------|-------------|--------------|
 | **Local** | `mongodb://localhost:27017` | `.env` (or default) |
-| **Railway** | Atlas connection string | Railway → Variables |
+| **Railway** | Railway MongoDB URL | Railway → Variables (reference) |
 
-Your local `.env` keeps localhost. Railway uses the `MONGODB_URL` you set in Variables.
+### Alternative: MongoDB Atlas
 
-### MongoDB Atlas (if you don't have a cloud MongoDB yet)
+If you prefer MongoDB Atlas over Railway's MongoDB:
 
 1. Go to [mongodb.com/atlas](https://www.mongodb.com/atlas) → Create free cluster
 2. Create a database user (username + password)
 3. Network Access → Add `0.0.0.0/0` (allow from anywhere)
 4. Connect → Drivers → Copy the connection string
-5. Replace `<password>` with your database user password (URL-encode special chars!)
+5. Add as `MONGODB_URL` in Railway Variables
 
-Example:
-```
-mongodb+srv://myuser:mypassword@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
-```
-
-Add this as `MONGODB_URL` in Railway → Variables.
+**Note:** Atlas may have SSL/TLS compatibility issues with some container environments.
 
 ## 3. Deploy
 
