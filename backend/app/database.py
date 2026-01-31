@@ -3,6 +3,7 @@ MongoDB database connection module using Motor (async driver).
 """
 import logging
 import traceback
+import ssl
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Optional
 
@@ -28,10 +29,16 @@ async def connect_to_mongo():
         # For Atlas connections in containerized environments
         kwargs = {}
         if "mongodb+srv" in settings.mongodb_url or "mongodb.net" in settings.mongodb_url:
-            # Try without certificate verification - Railway's OpenSSL may have compatibility issues
-            kwargs["tls"] = True
-            kwargs["tlsInsecure"] = True  # Disables all TLS verification
-            logger.info("Using tlsInsecure=True for Atlas connection")
+            # Create a permissive SSL context to work around Railway/OpenSSL issues
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            # Force TLS 1.2 (some environments have issues with TLS 1.3 + Atlas)
+            ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+            ctx.maximum_version = ssl.TLSVersion.TLSv1_2
+            kwargs["tlsCAFile"] = None
+            kwargs["ssl_context"] = ctx
+            logger.info("Using custom SSL context with TLS 1.2")
         client = AsyncIOMotorClient(settings.mongodb_url, **kwargs)
         # Test the connection
         await client.admin.command('ping')
