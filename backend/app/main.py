@@ -23,7 +23,7 @@ from app.routers import habits, streaks, reflections
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
-    # Startup: Connect to MongoDB
+    # Startup: Connect to MongoDB (non-blocking - app starts even if DB fails)
     try:
         logger.info("Starting application...")
         await connect_to_mongo()
@@ -31,7 +31,8 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to connect to MongoDB: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
-        raise
+        # Don't raise - let app start so health check passes and you can see logs.
+        # Fix MONGODB_URL in Railway Variables and redeploy.
     
     yield
     

@@ -57,6 +57,17 @@ Visit your Railway URL:
 
 ## Troubleshooting
 
+### Health check fails ("service unavailable")
+
+The app now starts even if MongoDB fails, so the deployment should succeed. Check **Logs** in Railway:
+
+- **"Failed to connect to MongoDB"** → Fix `MONGODB_URL` in Variables:
+  - MongoDB Atlas: Add `0.0.0.0/0` under Network Access
+  - Check connection string format and password (URL-encode special chars)
+  - Redeploy after fixing
+
+- **"Detected Node"** → Set Root Directory to `chlapp/backend` in Settings → Source
+
 ### Build fails
 - Check Railway build logs for errors
 - Ensure `requirements.txt` has all dependencies
