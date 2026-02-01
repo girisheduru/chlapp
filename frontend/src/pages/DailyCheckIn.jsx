@@ -70,8 +70,7 @@ const DailyCheckIn = () => {
         const streakData = await streaksAPI.getUserHabitStreakById(userId, habitId);
         setStreakCount(streakData.currentStreak || 0);
         setLongestStreak(streakData.longestStreak || 0);
-        // Use currentStreak as totalStones for now (can be updated if you have separate stone count)
-        setTotalStones(streakData.currentStreak || 0);
+        setTotalStones(streakData.totalStones ?? streakData.currentStreak ?? 0);
       } catch (error) {
         console.error('Error loading streak data:', error);
         setError('Failed to load streak data');
@@ -125,7 +124,7 @@ const DailyCheckIn = () => {
       // Update local state with API response
       setStreakCount(updatedStreak.currentStreak);
       setLongestStreak(updatedStreak.longestStreak);
-      setTotalStones(updatedStreak.currentStreak);
+      setTotalStones(updatedStreak.totalStones ?? updatedStreak.currentStreak);
 
       // Add stone animation
       setShowStoneAnimation(true);
@@ -670,14 +669,19 @@ const DailyCheckIn = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Button variant="celebration" style={{ flex: 1 }} onClick={() => setCurrentView('progress')}>
-            See my jar 🏺
-          </Button>
-          <Button variant="secondary" style={{ flex: 1 }} onClick={() => {
-            resetCheckin();
-            navigate('/');
-          }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <Button variant="celebration" style={{ flex: 1 }} onClick={() => setCurrentView('progress')}>
+              See my jar 🏺
+            </Button>
+            <Button variant="primary" style={{ flex: 1 }} onClick={() => {
+              resetCheckin();
+              setCurrentView('checkin');
+            }}>
+              Add another stone 💎
+            </Button>
+          </div>
+          <Button variant="secondary" style={{ width: '100%' }} onClick={() => navigate('/')}>
             Done for today
           </Button>
         </div>

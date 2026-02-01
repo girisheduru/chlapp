@@ -158,10 +158,9 @@ class StreakService:
                     longest_streak = current_streak
                     logger.info(f"New longest streak: {longest_streak}")
                 
-                # Total stones: one per unique check-in day (increment only when not same-day)
+                # Total stones: increment on every check-in (including same-day)
                 total_stones = existing.get("totalStones", 0)
-                if last_check_in is None or days_diff != 0:
-                    total_stones += 1
+                total_stones += 1
 
                 # Update the document
                 update_data = {
