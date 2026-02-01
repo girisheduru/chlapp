@@ -10,14 +10,15 @@ import { createNewHabitId } from '../utils/userStorage';
 export function AddHabitButton() {
   const navigate = useNavigate();
 
+  const handleAddHabit = () => {
+    const newHabitId = createNewHabitId();
+    navigate(`/onboarding?habitId=${encodeURIComponent(newHabitId)}`);
+  };
+
   return (
     <button
       type="button"
-      onClick={() =>
-        navigate('/onboarding', {
-          state: { isNewHabit: true, newHabitId: createNewHabitId() },
-        })
-      }
+      onClick={handleAddHabit}
       style={{
         width: '100%',
         padding: 24,

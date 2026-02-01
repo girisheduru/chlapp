@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
+import { createNewHabitId } from './utils/userStorage'
 import { useAuth } from './contexts/AuthContext'
 import { setApiTokenGetter, setOnUnauthorized } from './services/api'
 import Onboarding from './pages/Onboarding'
@@ -95,7 +96,7 @@ function App() {
           Home
         </Link>
         <Link
-          to="/onboarding"
+          to={`/onboarding?habitId=${encodeURIComponent(createNewHabitId())}`}
           style={{
             padding: '8px 16px',
             borderRadius: '8px',
@@ -106,7 +107,7 @@ function App() {
             transition: 'all 0.2s'
           }}
         >
-          Onboarding
+          Add habit
         </Link>
         {isFirebaseConfigured && !loading && (
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>

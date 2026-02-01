@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { 
   identityOptions, 
@@ -382,16 +382,25 @@ const Onboarding = () => {
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const newHabitIdRef = useRef(null);
 
-  // Initialize user and habit IDs. When adding a new habit (from Home "Add habit"), use newHabitId
-  // so the new habit is saved separately; otherwise use or create one from storage (first habit).
+  // Initialize user and habit IDs. When adding a new habit (from Home "Add habit"), habitId is in
+  // the URL (?habitId=xxx). We lock it in a ref so it's never overwritten by storedHabitId.
   useEffect(() => {
     const firebaseUid = authUser?.uid ?? undefined;
     const { userId: uid, habitId: storedHabitId } = getOrCreateUserAndHabitIds(firebaseUid);
     setUserId(uid);
-    const isNewHabit = location.state?.isNewHabit && location.state?.newHabitId;
-    setHabitId(isNewHabit ? location.state.newHabitId : storedHabitId);
-  }, [authUser?.uid, location.state?.isNewHabit, location.state?.newHabitId]);
+    const habitIdFromUrl = searchParams.get('habitId');
+    const fromState = location.state?.newHabitId;
+    if (habitIdFromUrl || fromState) {
+      newHabitIdRef.current = habitIdFromUrl || fromState;
+    } else {
+      newHabitIdRef.current = null;
+    }
+    const resolved = newHabitIdRef.current || habitIdFromUrl || fromState || storedHabitId;
+    setHabitId(resolved);
+  }, [authUser?.uid, searchParams, location.state?.newHabitId]);
 
   // Fetch generated identities when step 2 loads
   useEffect(() => {
@@ -522,7 +531,8 @@ const Onboarding = () => {
 
   // Function to save habit preference to backend
   const saveHabitPreference = useCallback(async (stepData) => {
-    if (!userId || !habitId) {
+    const effectiveHabitId = searchParams.get('habitId') || newHabitIdRef.current || habitId;
+    if (!userId || !effectiveHabitId) {
       console.error('User ID or Habit ID not initialized');
       return;
     }
@@ -557,7 +567,7 @@ const Onboarding = () => {
 
       const habitData = {
         userId,
-        habitId,
+        habitId: effectiveHabitId,
         preferences,
       };
 
@@ -579,7 +589,7 @@ const Onboarding = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [userId, habitId, goalInput, selectedIdentity, generatedIdentities, selectedFunOptions, customFun, baselineHabit, customBaselineHabit, generatedBaselineOptions, capacityExpression, customCapacityExpression, generatedCapacityOptions, selectedAnchor, customAnchor, selectedEnvironment, customEnvironment, generatedEnvironmentOptions]);
+  }, [userId, habitId, searchParams, goalInput, selectedIdentity, generatedIdentities, selectedFunOptions, customFun, baselineHabit, customBaselineHabit, generatedBaselineOptions, capacityExpression, customCapacityExpression, generatedCapacityOptions, selectedAnchor, customAnchor, selectedEnvironment, customEnvironment, generatedEnvironmentOptions]);
 
   // Helper function to save and move to next step
   const saveAndContinue = useCallback(async (nextStep) => {

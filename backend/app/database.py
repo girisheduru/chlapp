@@ -48,9 +48,19 @@ async def connect_to_mongo():
             )
             logger.info("Created index on streaks collection: userId_habitId_unique")
         except Exception as e:
-            # Index might already exist, which is fine
             logger.debug(f"Index creation note: {str(e)}")
-            
+
+        # Habits: compound unique index allows multiple habits per user (each userId+habitId is unique)
+        try:
+            await db.habits.create_index(
+                [("userId", 1), ("habitId", 1)],
+                unique=True,
+                name="userId_habitId_unique"
+            )
+            logger.info("Created index on habits collection: userId_habitId_unique")
+        except Exception as e:
+            logger.debug(f"Index creation note: {str(e)}")
+
     except Exception as e:
         logger.error(f"Error connecting to MongoDB: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
