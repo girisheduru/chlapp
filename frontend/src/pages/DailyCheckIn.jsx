@@ -36,6 +36,12 @@ const DailyCheckIn = () => {
     }
   }, [authUser?.uid, location.state?.fromHabitTile, location.state?.habitId, location.state?.userId]);
 
+  // Identity for "Remember who you're becoming": from the habit tile clicked, else default
+  const displayIdentity =
+    location.state?.fromHabitTile && location.state?.identity
+      ? location.state.identity
+      : defaultUserData.identity;
+
   // Check-in state
   const [selectedAction, setSelectedAction] = useState(null); // 'baseline', 'capacity', 'other', 'nottoday'
   const [somethingElseText, setSomethingElseText] = useState('');
@@ -223,7 +229,7 @@ const DailyCheckIn = () => {
             margin: 0,
             lineHeight: 1.4,
           }}>
-            "{userData.identity}"
+            "{displayIdentity}"
           </p>
         </div>
 
@@ -659,7 +665,7 @@ const DailyCheckIn = () => {
             textAlign: 'center',
             fontStyle: 'italic',
           }}>
-            "{userData.identity}"
+            "{displayIdentity}"
           </p>
         </div>
 
@@ -724,7 +730,7 @@ const DailyCheckIn = () => {
           textAlign: 'center',
           fontStyle: 'italic',
         }}>
-          "{userData.identity}"
+          "{displayIdentity}"
         </p>
       </div>
 

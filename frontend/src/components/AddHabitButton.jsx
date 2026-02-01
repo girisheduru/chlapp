@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
+import { createNewHabitId } from '../utils/userStorage';
 
 /**
- * "Add a new habit" card for Home screen - navigates to onboarding.
+ * "Add a new habit" card for Home screen - navigates to onboarding with a new habitId
+ * so the new habit is saved separately (multiple habits per user).
  */
 export function AddHabitButton() {
   const navigate = useNavigate();
@@ -11,7 +13,11 @@ export function AddHabitButton() {
   return (
     <button
       type="button"
-      onClick={() => navigate('/onboarding')}
+      onClick={() =>
+        navigate('/onboarding', {
+          state: { isNewHabit: true, newHabitId: createNewHabitId() },
+        })
+      }
       style={{
         width: '100%',
         padding: 24,

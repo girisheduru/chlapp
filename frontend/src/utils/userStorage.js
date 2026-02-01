@@ -4,8 +4,18 @@
  */
 
 /**
+ * Generate a new habit ID for adding a new habit (not persisted).
+ * Use this when the user clicks "Add a new habit" so each habit gets its own id.
+ * @returns {string}
+ */
+export const createNewHabitId = () => {
+  return `habit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+/**
  * Get or create user ID and habit ID from localStorage.
  * When firebaseUid is provided (signed-in user), it is used as userId and persisted.
+ * For the first habit, a habitId is created and stored; for "Add habit" use createNewHabitId() instead.
  * @param {string | null | undefined} [firebaseUid] - Firebase user.uid when signed in
  * @returns {{userId: string, habitId: string}}
  */
@@ -24,7 +34,7 @@ export const getOrCreateUserAndHabitIds = (firebaseUid = null) => {
 
   let habitId = localStorage.getItem('chl_habitId');
   if (!habitId) {
-    habitId = `habit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    habitId = createNewHabitId();
     localStorage.setItem('chl_habitId', habitId);
   }
 

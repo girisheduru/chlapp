@@ -76,24 +76,19 @@ def _get_llm():
 
 
 def _get_agent():
-    """Build ReAct agent with optional Tavily tool."""
+    """Build tool-calling agent with optional Tavily tool (langchain.agents.create_agent)."""
     global _agent
     if _agent is not None:
         return _agent
-    try:
-        from langgraph.prebuilt import create_react_agent
-        from langchain_core.messages import HumanMessage, SystemMessage
+    from langchain.agents import create_agent
 
-        llm = _get_llm()
-        tools = _get_tools()
-        if not tools:
-            logger.warning("Reflection agent running without tools (no Tavily API key)")
-        _agent = create_react_agent(llm, tools=tools)
-        logger.info("Reflection ReAct agent initialized (tools=%s)", len(tools))
-        return _agent
-    except Exception as e:
-        logger.error("Could not initialize reflection agent: %s", e)
-        raise
+    llm = _get_llm()
+    tools = _get_tools()
+    if not tools:
+        logger.warning("Reflection agent running without tools (no Tavily API key)")
+    _agent = create_agent(model=llm, tools=tools or None)
+    logger.info("Reflection agent initialized (tools=%s)", len(tools))
+    return _agent
 
 
 def _extract_json_from_response(content: str) -> dict:
@@ -132,7 +127,7 @@ def generate_reflection_items_with_agent(
             HumanMessage(content=user_prompt),
         ]
 
-        # LangGraph prebuilt agent expects input dict with "messages" key
+        # Agent expects input dict with "messages" key
         result = agent.invoke({"messages": messages})
 
         # Result is a dict with "messages" list; take the last AI message as final answer

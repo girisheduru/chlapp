@@ -20,7 +20,14 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
   };
 
   const handleCheckIn = () => {
-    navigate('/checkin', { state: { fromHabitTile: true, habitId: habit.id, userId: habit.userId } });
+    navigate('/checkin', {
+      state: {
+        fromHabitTile: true,
+        habitId: habit.id,
+        userId: habit.userId,
+        identity: habit.identity,
+      },
+    });
   };
 
   const handleReflect = () => {

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { 
   identityOptions, 
@@ -381,14 +381,17 @@ const Onboarding = () => {
   const totalSteps = TOTAL_STEPS;
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Initialize user and habit IDs; when signed in, use Firebase uid as userId
+  // Initialize user and habit IDs. When adding a new habit (from Home "Add habit"), use newHabitId
+  // so the new habit is saved separately; otherwise use or create one from storage (first habit).
   useEffect(() => {
     const firebaseUid = authUser?.uid ?? undefined;
-    const { userId: uid, habitId: hid } = getOrCreateUserAndHabitIds(firebaseUid);
+    const { userId: uid, habitId: storedHabitId } = getOrCreateUserAndHabitIds(firebaseUid);
     setUserId(uid);
-    setHabitId(hid);
-  }, [authUser?.uid]);
+    const isNewHabit = location.state?.isNewHabit && location.state?.newHabitId;
+    setHabitId(isNewHabit ? location.state.newHabitId : storedHabitId);
+  }, [authUser?.uid, location.state?.isNewHabit, location.state?.newHabitId]);
 
   // Fetch generated identities when step 2 loads
   useEffect(() => {
