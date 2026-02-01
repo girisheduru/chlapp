@@ -148,6 +148,34 @@ class LLMService:
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
 
+    async def generate_json(
+        self,
+        prompt: str,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = 2048,
+    ) -> dict:
+        """
+        Generate JSON from LLM. Expects prompt to ask for JSON; strips markdown code blocks if present.
+        """
+        try:
+            raw = await self.generate_text(
+                prompt=prompt,
+                temperature=temperature or self.temperature,
+                max_tokens=max_tokens or 2048,
+            )
+            text = raw.strip()
+            if text.startswith("```"):
+                lines = text.split("\n")
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                text = "\n".join(lines)
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            logger.warning(f"LLM JSON parse error: {e}. Raw (first 500 chars): {raw[:500] if raw else 'empty'}")
+            raise ValueError(f"LLM did not return valid JSON: {e}") from e
+
 
 # Global LLM service instance
 llm_service = LLMService()

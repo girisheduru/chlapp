@@ -71,6 +71,7 @@ backend/
    LLM_MODEL=gpt-4
    LLM_TEMPERATURE=0.7
    LLM_MAX_TOKENS=1000
+   TAVILY_API_KEY=your_tavily_key_here  # Optional; enables reflection agent to search for James Clear / Atomic Habits content
    ```
 
 ## Running the Application

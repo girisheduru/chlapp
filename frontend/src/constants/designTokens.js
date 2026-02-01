@@ -20,6 +20,10 @@ export const colors = {
   celebration: '#FFB347',
   fire: '#E65100',
   accent: '#FFF9E6',
+  // Reflection flow (week tracker)
+  baseline: '#C8E6C9',
+  expanded: '#A5D6A7',
+  skipped: '#E8E4DF',
 };
 
 export const fonts = {

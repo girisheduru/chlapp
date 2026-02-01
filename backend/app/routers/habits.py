@@ -3,6 +3,7 @@ API routes for habit-related endpoints.
 """
 import logging
 import traceback
+from typing import List
 from fastapi import APIRouter, HTTPException, status, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -27,6 +28,7 @@ from app.utils.prompts import (
     get_full_habit_options_prompt,
     get_obvious_cues_prompt
 )
+from app.core.auth import CurrentUser, get_current_user
 
 router = APIRouter(prefix="/api/v1", tags=["habits"])
 
@@ -34,6 +36,34 @@ router = APIRouter(prefix="/api/v1", tags=["habits"])
 async def get_db() -> AsyncIOMotorDatabase:
     """Dependency to get database instance."""
     return get_database()
+
+
+@router.get(
+    "/habits",
+    response_model=List[HabitPreferenceResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List all habits for the current user",
+    description="Returns all habits in the Habits collection for the authenticated user"
+)
+async def list_habits(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    List all habits for the logged-in user (uses Firebase uid from token).
+    """
+    try:
+        logger.info(f"GET /habits - userId: {current_user.uid}")
+        habits = await habit_service.list_habits_by_user(db, current_user.uid)
+        logger.info(f"Returning {len(habits)} habits for userId: {current_user.uid}")
+        return habits
+    except Exception as e:
+        logger.error(f"Error listing habits: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error listing habits: {str(e)}"
+        )
 
 
 @router.post(
@@ -45,18 +75,22 @@ async def get_db() -> AsyncIOMotorDatabase:
 )
 async def save_user_habit_preference(
     habit_data: HabitPreferenceCreate,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     """
     Save or update user habit preferences.
     This endpoint is called from every step in the onboarding process.
+    userId is overridden with the authenticated user's uid.
     """
     try:
+        # Override userId with authenticated user so client cannot impersonate
+        data_to_save = habit_data.model_copy(update={"userId": current_user.uid})
         logger.info(
-            f"POST /saveUserHabitPreference - userId: {habit_data.userId}, "
-            f"habitId: {habit_data.habitId}"
+            f"POST /saveUserHabitPreference - userId: {current_user.uid}, "
+            f"habitId: {data_to_save.habitId}"
         )
-        result = await habit_service.save_habit_preference(db, habit_data)
+        result = await habit_service.save_habit_preference(db, data_to_save)
         logger.info(f"Successfully saved habit preference - _id: {result.id}")
         return result
     except Exception as e:
@@ -77,28 +111,30 @@ async def save_user_habit_preference(
 )
 async def generate_identities(
     request: IdentityGenerationRequest,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     """
     Generate identity options using LLM.
-    Uses context from the habit collection.
+    Uses context from the habit collection. userId from body is ignored; uses authenticated uid.
     """
     try:
+        uid = current_user.uid
         logger.info(
-            f"POST /generateIdentities - userId: {request.userId}, "
+            f"POST /generateIdentities - userId: {uid}, "
             f"habitId: {request.habitId}"
         )
         
-        # Get habit context from MongoDB
+        # Get habit context from MongoDB (use authenticated uid)
         habit_context = await habit_service.get_habit_context(
-            db, request.userId, request.habitId
+            db, uid, request.habitId
         )
 
         # If we don't have any context yet (e.g. user hasn't completed step 1),
         # fall back to a very simple prompt using a generic starting idea.
         if not habit_context:
             logger.warning(
-                f"No habit context found - using fallback. userId: {request.userId}, "
+                f"No habit context found - using fallback. userId: {uid}, "
                 f"habitId: {request.habitId}"
             )
             habit_context = {"starting_idea": "I want to build a healthier habit"}
@@ -146,20 +182,22 @@ async def generate_identities(
 )
 async def generate_short_habit_options(
     request: HabitOptionRequest,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     """
     Generate short habit options using LLM.
-    Uses context from all choices made in previous steps.
+    Uses context from all choices made in previous steps. userId from body is ignored.
     """
     try:
+        uid = current_user.uid
         logger.info(
-            f"POST /generateShortHabitOptions - userId: {request.userId}, "
+            f"POST /generateShortHabitOptions - userId: {uid}, "
             f"habitId: {request.habitId}"
         )
-        # Get habit context
+        # Get habit context (use authenticated uid)
         habit_context = await habit_service.get_habit_context(
-            db, request.userId, request.habitId
+            db, uid, request.habitId
         )
         
         # Generate prompt
@@ -195,20 +233,22 @@ async def generate_short_habit_options(
 )
 async def generate_full_habit_options(
     request: HabitOptionRequest,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     """
     Generate full habit options using LLM.
-    Uses context from all choices made in previous steps.
+    Uses context from all choices made in previous steps. userId from body is ignored.
     """
     try:
+        uid = current_user.uid
         logger.info(
-            f"POST /generateFullHabitOptions - userId: {request.userId}, "
+            f"POST /generateFullHabitOptions - userId: {uid}, "
             f"habitId: {request.habitId}"
         )
-        # Get habit context
+        # Get habit context (use authenticated uid)
         habit_context = await habit_service.get_habit_context(
-            db, request.userId, request.habitId
+            db, uid, request.habitId
         )
         
         # Generate prompt
@@ -244,20 +284,22 @@ async def generate_full_habit_options(
 )
 async def generate_obvious_cues(
     request: ObviousCueRequest,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     """
     Generate obvious cues using LLM.
-    Uses context from all choices made in previous steps.
+    Uses context from all choices made in previous steps. userId from body is ignored.
     """
     try:
+        uid = current_user.uid
         logger.info(
-            f"POST /generateObviousCues - userId: {request.userId}, "
+            f"POST /generateObviousCues - userId: {uid}, "
             f"habitId: {request.habitId}"
         )
-        # Get habit context
+        # Get habit context (use authenticated uid)
         habit_context = await habit_service.get_habit_context(
-            db, request.userId, request.habitId
+            db, uid, request.habitId
         )
         
         # Generate prompt
@@ -294,20 +336,26 @@ async def generate_obvious_cues(
 async def get_user_habit_by_id(
     userId: str,
     habitId: str,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     """
-    Get habit by user ID and habit ID.
+    Get habit by user ID and habit ID. userId must equal authenticated user's uid.
     """
     try:
-        logger.info(f"GET /GetUserHabitById - userId: {userId}, habitId: {habitId}")
-        habit = await habit_service.get_habit_by_id(db, userId, habitId)
+        if userId != current_user.uid:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden",
+            )
+        logger.info(f"GET /GetUserHabitById - userId: {current_user.uid}, habitId: {habitId}")
+        habit = await habit_service.get_habit_by_id(db, current_user.uid, habitId)
         
         if not habit:
-            logger.warning(f"Habit not found - userId: {userId}, habitId: {habitId}")
+            logger.warning(f"Habit not found - userId: {current_user.uid}, habitId: {habitId}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Habit not found for userId={userId}, habitId={habitId}"
+                detail=f"Habit not found for userId={current_user.uid}, habitId={habitId}"
             )
         
         logger.info(f"Successfully retrieved habit - _id: {habit.id}")

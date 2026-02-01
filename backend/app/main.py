@@ -3,8 +3,9 @@ FastAPI application main entry point.
 """
 import logging
 import traceback
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
@@ -17,7 +18,8 @@ logger = setup_logging()
 
 from app.database import connect_to_mongo, close_mongo_connection
 from app.core.config import settings
-from app.routers import habits, streaks, reflections
+from app.core.firebase import init_firebase
+from app.routers import habits, streaks, reflections, admin
 
 
 @asynccontextmanager
@@ -32,7 +34,14 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to connect to MongoDB: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise
-    
+
+    # Optional: Initialize Firebase Admin (skip on error so app still runs)
+    if settings.firebase_project_id and settings.google_application_credentials:
+        try:
+            init_firebase()
+        except Exception as e:
+            logger.warning(f"Firebase init failed (auth will be skipped): {e}")
+
     yield
     
     # Shutdown: Close MongoDB connection
@@ -67,10 +76,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Log 422 validation errors so "save habit" failures show up in logs
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.warning(
+        "Request validation failed (422): path=%s method=%s errors=%s",
+        request.url.path,
+        request.method,
+        exc.errors(),
+    )
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
+
 # Include routers
 app.include_router(habits.router)
 app.include_router(streaks.router)
 app.include_router(reflections.router)
+# Admin router only when Firebase is configured (optional)
+if settings.firebase_project_id and settings.google_application_credentials:
+    app.include_router(admin.router)
 
 
 @app.get("/", tags=["root"])

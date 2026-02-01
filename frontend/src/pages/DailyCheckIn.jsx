@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { animations } from '../constants/animations';
 import { obstacleOptions, helperOptions, defaultUserData } from '../data/checkinData';
 import { Button, Card, ActionOption, SelectChip, StoneJar, TodaysStone, Confetti, StreakDisplay } from '../components';
 import { streaksAPI } from '../services/api';
-import { getUserId, getHabitId } from '../utils/userStorage';
+import { useAuth } from '../contexts/AuthContext';
+import { getOrCreateUserAndHabitIds } from '../utils/userStorage';
 
 const DailyCheckIn = () => {
+  const location = useLocation();
+  const { user: authUser } = useAuth();
+  const [userId, setUserId] = useState(null);
+  const [habitId, setHabitId] = useState(null);
   const [currentView, setCurrentView] = useState('checkin');
   const [showConfetti, setShowConfetti] = useState(false);
   const [streakCount, setStreakCount] = useState(0);
@@ -16,15 +22,19 @@ const DailyCheckIn = () => {
   const [showStoneAnimation, setShowStoneAnimation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Get userId and habitId from localStorage (set during onboarding)
-  // Uses the same format as habits collection: 'user_<timestamp>_<random>' and 'habit_<timestamp>_<random>'
-  const [userId] = useState(() => {
-    return getUserId();
-  });
-  const [habitId] = useState(() => {
-    return getHabitId();
-  });
+
+  // userId and habitId: from habit tile state when present, else from auth/storage
+  useEffect(() => {
+    const firebaseUid = authUser?.uid ?? undefined;
+    const { userId: storageUserId, habitId: storageHabitId } = getOrCreateUserAndHabitIds(firebaseUid);
+    if (location.state?.fromHabitTile && location.state?.habitId) {
+      setUserId(location.state.userId ?? storageUserId);
+      setHabitId(location.state.habitId);
+    } else {
+      setUserId(storageUserId);
+      setHabitId(storageHabitId);
+    }
+  }, [authUser?.uid, location.state?.fromHabitTile, location.state?.habitId, location.state?.userId]);
 
   // Check-in state
   const [selectedAction, setSelectedAction] = useState(null); // 'baseline', 'capacity', 'other', 'nottoday'

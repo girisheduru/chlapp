@@ -47,6 +47,7 @@ class StreakService:
                 return StreakResponse(
                     currentStreak=0,
                     longestStreak=0,
+                    totalStones=0,
                     lastCheckInDate=None
                 )
             
@@ -60,6 +61,7 @@ class StreakService:
             result = StreakResponse(
                 currentStreak=streak.get("currentStreak", 0),
                 longestStreak=streak.get("longestStreak", 0),
+                totalStones=streak.get("totalStones", 0),
                 lastCheckInDate=last_check_in_date
             )
             
@@ -125,6 +127,7 @@ class StreakService:
                 current_streak = existing.get("currentStreak", 0)
                 longest_streak = existing.get("longestStreak", 0)
                 last_check_in = existing.get("lastCheckInDate")
+                days_diff = None  # for total_stones logic below
                 
                 # Convert lastCheckInDate to date if it's datetime
                 if last_check_in and isinstance(last_check_in, datetime):
@@ -155,10 +158,16 @@ class StreakService:
                     longest_streak = current_streak
                     logger.info(f"New longest streak: {longest_streak}")
                 
+                # Total stones: one per unique check-in day (increment only when not same-day)
+                total_stones = existing.get("totalStones", 0)
+                if last_check_in is None or days_diff != 0:
+                    total_stones += 1
+
                 # Update the document
                 update_data = {
                     "currentStreak": current_streak,
                     "longestStreak": longest_streak,
+                    "totalStones": total_stones,
                     "lastCheckInDate": check_in_datetime,  # Store as datetime for MongoDB
                     "updatedAt": now
                 }
@@ -178,6 +187,7 @@ class StreakService:
                     "habitId": request.habitId,  # Store as string to match habits collection
                     "currentStreak": 1,
                     "longestStreak": 1,
+                    "totalStones": 1,
                     "lastCheckInDate": check_in_datetime,  # Store as datetime for MongoDB
                     "createdAt": now,
                     "updatedAt": now
@@ -194,6 +204,7 @@ class StreakService:
             response = StreakResponse(
                 currentStreak=updated_doc.get("currentStreak", 0),
                 longestStreak=updated_doc.get("longestStreak", 0),
+                totalStones=updated_doc.get("totalStones", 0),
                 lastCheckInDate=last_check_in_date
             )
             

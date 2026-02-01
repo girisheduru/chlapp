@@ -50,6 +50,7 @@ class StreakResponse(BaseModel):
         from_attributes=True
     )
     
-    currentStreak: int = Field(..., description="Current streak count")
+    currentStreak: int = Field(..., description="Current consecutive-day streak count")
     longestStreak: int = Field(..., description="Longest streak achieved")
+    totalStones: int = Field(0, ge=0, description="Total stones (check-ins) in jar")
     lastCheckInDate: Optional[date] = Field(None, description="Last check-in date")

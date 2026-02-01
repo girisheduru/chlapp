@@ -113,7 +113,36 @@ class HabitService:
             )
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
-    
+
+    @staticmethod
+    async def list_habits_by_user(
+        db: AsyncIOMotorDatabase,
+        userId: str
+    ) -> list:
+        """
+        List all habits for a user (by userId).
+
+        Args:
+            db: Database instance
+            userId: User ID (e.g. Firebase uid)
+
+        Returns:
+            List of HabitPreferenceResponse
+        """
+        try:
+            logger.debug(f"Listing habits for user - userId: {userId}")
+            cursor = db.habits.find({"userId": userId})
+            habits = []
+            async for doc in cursor:
+                doc["_id"] = str(doc["_id"])
+                habits.append(HabitPreferenceResponse(**doc))
+            logger.debug(f"Found {len(habits)} habits for userId: {userId}")
+            return habits
+        except Exception as e:
+            logger.error(f"Error listing habits - userId: {userId}, error: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
+
     @staticmethod
     async def get_habit_context(
         db: AsyncIOMotorDatabase,

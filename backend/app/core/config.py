@@ -18,12 +18,20 @@ class Settings(BaseSettings):
     llm_api_base_url: Optional[str] = None  # For custom API endpoints
     llm_temperature: float = 0.7
     llm_max_tokens: int = 1000
+
+    # Tavily (optional — for reflection agent web search / James Clear content)
+    tavily_api_key: Optional[str] = None
     
     # Application settings
     app_name: str = "CHL API"
     app_version: str = "1.0.0"
     debug: bool = False
-    
+
+    # Firebase (optional — if missing, auth is skipped for local dev)
+    firebase_project_id: Optional[str] = None
+    google_application_credentials: Optional[str] = None  # path to service account JSON
+    admin_uids: Optional[str] = None  # comma-separated UIDs allowed for admin API (e.g. "uid1,uid2")
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

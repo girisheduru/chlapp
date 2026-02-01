@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { 
   identityOptions, 
@@ -11,6 +12,7 @@ import {
 } from '../data/onboardingData';
 import { Button, Card, SelectableOption, InfoBox, Quote, ProgressBar } from '../components';
 import { habitsAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { getOrCreateUserAndHabitIds } from '../utils/userStorage';
 
 // Step 1 Component - Defined outside to maintain stable reference
@@ -377,13 +379,16 @@ const Onboarding = () => {
   const [isLoadingStep8Habit, setIsLoadingStep8Habit] = useState(false);
 
   const totalSteps = TOTAL_STEPS;
+  const { user: authUser } = useAuth();
+  const navigate = useNavigate();
 
-  // Initialize user and habit IDs on mount
+  // Initialize user and habit IDs; when signed in, use Firebase uid as userId
   useEffect(() => {
-    const { userId: uid, habitId: hid } = getOrCreateUserAndHabitIds();
+    const firebaseUid = authUser?.uid ?? undefined;
+    const { userId: uid, habitId: hid } = getOrCreateUserAndHabitIds(firebaseUid);
     setUserId(uid);
     setHabitId(hid);
-  }, []);
+  }, [authUser?.uid]);
 
   // Fetch generated identities when step 2 loads
   useEffect(() => {
@@ -557,8 +562,16 @@ const Onboarding = () => {
       console.log('Habit preference saved:', response);
       return response;
     } catch (error) {
-      console.error('Error saving habit preference:', error);
-      alert('Failed to save habit preference. Please try again.');
+      const status = error?.status;
+      const detail = error?.detail ?? error?.message;
+      console.error('Error saving habit preference:', { status, message: error?.message, detail });
+      if (status === 401) {
+        alert('Session expired or not signed in. Please sign in again.');
+      } else if (status === 422) {
+        alert('Invalid form data. Please check your entries and try again.');
+      } else {
+        alert(`Failed to save habit preference (${status || 'network error'}). Please try again.`);
+      }
       throw error;
     } finally {
       setIsSaving(false);
@@ -575,6 +588,15 @@ const Onboarding = () => {
       console.error('Failed to save and continue:', error);
     }
   }, [saveHabitPreference]);
+
+  const finishOnboarding = useCallback(async () => {
+    try {
+      await saveHabitPreference();
+      navigate('/');
+    } catch (error) {
+      console.error('Failed to finish onboarding:', error);
+    }
+  }, [saveHabitPreference, navigate]);
 
   const handleContinue = useCallback(async () => {
     // Save current step data before moving to next step
@@ -1199,7 +1221,7 @@ const Onboarding = () => {
           </Button>
           <Button 
             style={{ padding: '16px 36px', fontSize: 16 }} 
-            onClick={() => saveAndContinue(1)}
+            onClick={finishOnboarding}
             disabled={isSaving}
           >
             {isSaving ? 'Saving...' : 'Start My Journey →'}
