@@ -52,7 +52,7 @@ function mapToHabitTile(habitFromApi, streakFromApi, habitId, index) {
 }
 
 export default function Home() {
-  const { user: authUser, loading: authLoading } = useAuth();
+  const { user: authUser, loading: authLoading, getIdToken } = useAuth();
   const [userId, setUserId] = useState(null);
   const [userHabits, setUserHabits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,11 +98,16 @@ export default function Home() {
     }
   }, []);
 
+  // Wait for token before fetching — avoids 401 on first load (Firebase restores session async)
   useEffect(() => {
     if (!authLoading && authUser?.uid) {
-      loadHabits();
+      let cancelled = false;
+      getIdToken().then((token) => {
+        if (!cancelled && token) loadHabits();
+      });
+      return () => { cancelled = true; };
     }
-  }, [authLoading, authUser?.uid, loadHabits]);
+  }, [authLoading, authUser?.uid, loadHabits, getIdToken]);
 
   const currentHour = new Date().getHours();
   const getGreeting = () => {
