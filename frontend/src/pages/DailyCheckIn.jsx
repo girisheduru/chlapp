@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { animations } from '../constants/animations';
 import { obstacleOptions, helperOptions, defaultUserData } from '../data/checkinData';
@@ -10,6 +10,7 @@ import { getOrCreateUserAndHabitIds } from '../utils/userStorage';
 
 const DailyCheckIn = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const [userId, setUserId] = useState(null);
   const [habitId, setHabitId] = useState(null);
@@ -675,7 +676,7 @@ const DailyCheckIn = () => {
           </Button>
           <Button variant="secondary" style={{ flex: 1 }} onClick={() => {
             resetCheckin();
-            setCurrentView('checkin');
+            navigate('/');
           }}>
             Done for today
           </Button>
