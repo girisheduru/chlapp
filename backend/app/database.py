@@ -1,5 +1,10 @@
 """
 MongoDB database connection module using Motor (async driver).
+
+Supports:
+- Railway MongoDB plugin (recommended for Railway deployments)
+- Local MongoDB (for development)
+- MongoDB Atlas (if needed, may require additional TLS config)
 """
 import logging
 import traceback
@@ -18,7 +23,15 @@ async def connect_to_mongo():
     """Create database connection."""
     global client
     try:
-        logger.info(f"Connecting to MongoDB at {settings.mongodb_url}")
+        # Mask password in logs
+        safe_url = settings.mongodb_url
+        if "@" in safe_url:
+            parts = safe_url.split("@")
+            safe_url = parts[0].rsplit(":", 1)[0] + ":****@" + parts[1]
+        logger.info(f"Connecting to MongoDB at {safe_url}")
+        
+        # Simple connection - works for Railway MongoDB and local MongoDB
+        # Railway MongoDB plugin provides a standard mongodb:// URL with no SSL required
         client = AsyncIOMotorClient(settings.mongodb_url)
         # Test the connection
         await client.admin.command('ping')

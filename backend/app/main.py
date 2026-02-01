@@ -17,7 +17,7 @@ from app.core.logging_config import setup_logging
 logger = setup_logging()
 
 from app.database import connect_to_mongo, close_mongo_connection
-from app.core.config import settings
+from app.core.config import settings, get_cors_origins
 from app.core.firebase import init_firebase
 from app.routers import habits, streaks, reflections, admin
 
@@ -25,7 +25,7 @@ from app.routers import habits, streaks, reflections, admin
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
-    # Startup: Connect to MongoDB
+    # Startup: Connect to MongoDB (non-blocking - app starts even if DB fails)
     try:
         logger.info("Starting application...")
         await connect_to_mongo()
@@ -33,7 +33,8 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to connect to MongoDB: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
-        raise
+        # Don't raise - let app start so health check passes and you can see logs.
+        # Fix MONGODB_URL in Railway Variables and redeploy.
 
     # Optional: Initialize Firebase Admin (skip on error so app still runs)
     if settings.firebase_project_id and settings.google_application_credentials:
@@ -62,15 +63,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS
+# Configure CORS (set CORS_ORIGINS for production, e.g. https://your-app.vercel.app)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

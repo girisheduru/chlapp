@@ -1,9 +1,40 @@
 /**
  * API service for making HTTP requests to the backend.
  * When setApiTokenGetter is set (by AuthProvider), requests include Authorization: Bearer <token>.
+ *
+ * Local development: Uses relative URL '/api/v1' which Vite proxies to http://localhost:8000
+ * Production (Vercel): Requires VITE_API_URL env var pointing to your backend (e.g. https://your-api.railway.app)
  */
 
-const API_BASE_URL = '/api/v1';
+// Determine API base URL based on environment
+const getApiBaseUrl = () => {
+  // If VITE_API_URL is set (production), use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, '') + '/api/v1';
+  }
+  
+  // In development, use relative URL (Vite proxy handles it)
+  if (import.meta.env.DEV) {
+    return '/api/v1';
+  }
+  
+  // Production without VITE_API_URL - this won't work, warn the user
+  console.error(
+    '[api.js] VITE_API_URL is not set. API calls will fail with 404/405. ' +
+      'Set VITE_API_URL in Vercel → Settings → Environment Variables to your backend URL (e.g. https://your-api.railway.app).'
+  );
+  return '/api/v1'; // Will fail, but at least shows the error
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// Debug logging (only in development or when explicitly debugging)
+if (import.meta.env.DEV) {
+  console.log('[api.js] Running in development mode, using Vite proxy');
+  console.log('[api.js] API_BASE_URL =', API_BASE_URL);
+} else {
+  console.log('[api.js] API_BASE_URL =', API_BASE_URL);
+}
 
 /** Optional async getter for Firebase ID token; set by app when auth is configured. */
 let tokenGetter = null;
