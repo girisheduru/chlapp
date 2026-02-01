@@ -110,15 +110,16 @@ const DailyCheckIn = () => {
     }
 
     try {
-      // Get today's date in YYYY-MM-DD format
       const today = new Date();
       const checkInDate = today.toISOString().split('T')[0];
+      const checkInDateTime = today.toISOString();
 
-      // Update streak via API
+      // Update streak via API (include checkInDateTime so backend stores actual time)
       const updatedStreak = await streaksAPI.updateUserHabitStreakById({
         userId,
         habitId,
         checkInDate,
+        checkInDateTime,
       });
 
       // Update local state with API response

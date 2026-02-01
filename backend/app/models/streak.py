@@ -23,17 +23,18 @@ class StreakCreate(BaseModel):
     habitId: str = Field(..., description="Habit ID (ObjectId)")
     currentStreak: int = Field(0, ge=0, description="Current streak count")
     longestStreak: int = Field(0, ge=0, description="Longest streak achieved")
-    lastCheckInDate: Optional[date] = Field(None, description="Last check-in date")
+    lastCheckInDate: Optional[datetime] = Field(None, description="Last check-in date/time (ISO datetime)")
 
 
 class StreakUpdateRequest(BaseModel):
-    """Model for updating a streak with check-in date."""
+    """Model for updating a streak with check-in date and optional time."""
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "userId": "user123",
                 "habitId": "habit456",
-                "checkInDate": "2024-01-25"
+                "checkInDate": "2024-01-25",
+                "checkInDateTime": "2024-01-25T14:30:00.000Z"
             }
         }
     )
@@ -41,6 +42,7 @@ class StreakUpdateRequest(BaseModel):
     userId: str = Field(..., description="User ID (ObjectId)")
     habitId: str = Field(..., description="Habit ID (ObjectId)")
     checkInDate: str = Field(..., description="Check-in date in YYYY-MM-DD format")
+    checkInDateTime: Optional[str] = Field(None, description="Optional ISO datetime of check-in (e.g. 2024-01-25T14:30:00.000Z)")
 
 
 class StreakResponse(BaseModel):
@@ -53,4 +55,4 @@ class StreakResponse(BaseModel):
     currentStreak: int = Field(..., description="Current consecutive-day streak count")
     longestStreak: int = Field(..., description="Longest streak achieved")
     totalStones: int = Field(0, ge=0, description="Total stones (check-ins) in jar")
-    lastCheckInDate: Optional[date] = Field(None, description="Last check-in date")
+    lastCheckInDate: Optional[datetime] = Field(None, description="Last check-in date/time (ISO datetime)")

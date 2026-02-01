@@ -51,12 +51,8 @@ class StreakService:
                     lastCheckInDate=None
                 )
             
-            # Extract and convert data
+            # Extract data - keep datetime for response so frontend gets actual check-in time
             last_check_in_date = streak.get("lastCheckInDate")
-            
-            # Convert datetime to date if needed
-            if last_check_in_date and isinstance(last_check_in_date, datetime):
-                last_check_in_date = last_check_in_date.date()
             
             result = StreakResponse(
                 currentStreak=streak.get("currentStreak", 0),
@@ -103,12 +99,25 @@ class StreakService:
                 f"habitId: {request.habitId}, checkInDate: {request.checkInDate}"
             )
             
-            # Use strings directly to match habits collection format
-            # Parse check-in date
+            # Parse check-in date/time: use checkInDateTime (actual time) if provided, else midnight
             try:
                 check_in_date = datetime.strptime(request.checkInDate, "%Y-%m-%d").date()
-                # Convert date to datetime for MongoDB storage (start of day in UTC)
-                check_in_datetime = datetime.combine(check_in_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+                if request.checkInDateTime:
+                    try:
+                        check_in_datetime = datetime.fromisoformat(
+                            request.checkInDateTime.replace("Z", "+00:00")
+                        )
+                        if check_in_datetime.tzinfo is None:
+                            check_in_datetime = check_in_datetime.replace(tzinfo=timezone.utc)
+                        check_in_date = check_in_datetime.date()
+                    except (ValueError, TypeError):
+                        check_in_datetime = datetime.combine(
+                            check_in_date, datetime.min.time()
+                        ).replace(tzinfo=timezone.utc)
+                else:
+                    check_in_datetime = datetime.combine(
+                        check_in_date, datetime.min.time()
+                    ).replace(tzinfo=timezone.utc)
             except ValueError as ve:
                 logger.error(f"Invalid date format: {request.checkInDate}")
                 raise ValueError(f"Invalid checkInDate format. Must be YYYY-MM-DD. Error: {ve}")
@@ -195,10 +204,8 @@ class StreakService:
                 updated_doc = await db.streaks.find_one({"_id": result.inserted_id})
                 logger.info(f"Successfully created streak - _id: {updated_doc['_id']}")
             
-            # Prepare response
+            # Prepare response - return full datetime so frontend shows actual check-in time
             last_check_in_date = updated_doc.get("lastCheckInDate")
-            if last_check_in_date and isinstance(last_check_in_date, datetime):
-                last_check_in_date = last_check_in_date.date()
             
             response = StreakResponse(
                 currentStreak=updated_doc.get("currentStreak", 0),
