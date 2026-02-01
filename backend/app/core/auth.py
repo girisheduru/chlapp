@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.core.config import settings
+from app.core.config import is_firebase_configured, settings
 from app.core.firebase import verify_id_token
 
 security = HTTPBearer(auto_error=False)
@@ -23,10 +23,6 @@ class CurrentUser:
     """Authenticated user from Firebase ID token."""
     uid: str
     email: Optional[str] = None
-
-
-def _firebase_configured() -> bool:
-    return bool(settings.firebase_project_id and settings.google_application_credentials)
 
 
 async def get_current_user(
@@ -44,14 +40,14 @@ async def get_current_user(
             if uid:
                 return CurrentUser(uid=uid, email=decoded.get("email"))
         # Token present but invalid — always 401
-        if _firebase_configured():
+        if is_firebase_configured():
             logging.getLogger(__name__).warning("Auth: invalid or expired token — returning 401")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or missing token",
             )
     # No token or Firebase not configured
-    if not _firebase_configured():
+    if not is_firebase_configured():
         return CurrentUser(uid=DEV_USER_UID, email=None)
     logging.getLogger(__name__).warning("Auth: missing Bearer token — returning 401")
     raise HTTPException(

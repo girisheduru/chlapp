@@ -44,7 +44,8 @@ class Settings(BaseSettings):
 
     # Firebase (optional — if missing, auth is skipped for local dev)
     firebase_project_id: Optional[str] = None
-    google_application_credentials: Optional[str] = None  # path to service account JSON
+    google_application_credentials: Optional[str] = None  # path to service account JSON file
+    google_application_credentials_json: Optional[str] = None  # or entire JSON as string (e.g. for production env/secrets)
     admin_uids: Optional[str] = None  # comma-separated UIDs allowed for admin API (e.g. "uid1,uid2")
 
     class Config:
@@ -61,3 +62,11 @@ def get_cors_origins() -> list[str]:
     if settings.cors_origins:
         return [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
     return _default_cors_origins()
+
+
+def is_firebase_configured() -> bool:
+    """True if Firebase is configured (project ID + credentials via file path or JSON env)."""
+    return bool(
+        settings.firebase_project_id
+        and (settings.google_application_credentials or settings.google_application_credentials_json)
+    )

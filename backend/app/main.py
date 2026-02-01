@@ -17,7 +17,7 @@ from app.core.logging_config import setup_logging
 logger = setup_logging()
 
 from app.database import connect_to_mongo, close_mongo_connection
-from app.core.config import settings, get_cors_origins
+from app.core.config import get_cors_origins, is_firebase_configured, settings
 from app.core.firebase import init_firebase
 from app.routers import habits, streaks, reflections, admin
 
@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
         # Fix MONGODB_URL in Railway Variables and redeploy.
 
     # Optional: Initialize Firebase Admin (skip on error so app still runs)
-    if settings.firebase_project_id and settings.google_application_credentials:
+    if is_firebase_configured():
         try:
             init_firebase()
         except Exception as e:
@@ -92,7 +92,7 @@ app.include_router(habits.router)
 app.include_router(streaks.router)
 app.include_router(reflections.router)
 # Admin router only when Firebase is configured (optional)
-if settings.firebase_project_id and settings.google_application_credentials:
+if is_firebase_configured():
     app.include_router(admin.router)
 
 
