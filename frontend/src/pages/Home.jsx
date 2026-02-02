@@ -5,6 +5,7 @@ import { HabitTile } from '../components/HabitTile';
 import { AddHabitButton } from '../components/AddHabitButton';
 import { useAuth } from '../contexts/AuthContext';
 import { getOrCreateUserAndHabitIds } from '../utils/userStorage';
+import { parseUtcDate } from '../utils/dateUtils';
 import { habitsAPI, streaksAPI } from '../services/api';
 
 const HABIT_COLORS = ['#4A7C59', '#6B5D4D', '#5C6B8A'];
@@ -15,14 +16,15 @@ const HABIT_COLORS = ['#4A7C59', '#6B5D4D', '#5C6B8A'];
 function mapToHabitTile(habitFromApi, streakFromApi, habitId, index) {
   const p = habitFromApi?.preferences ?? {};
   const lastDate = streakFromApi?.lastCheckInDate;
+  const lastDateParsed = parseUtcDate(lastDate); // UTC when API sends naive datetime (production)
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const lastDateStr = lastDate == null ? null : typeof lastDate === 'string' ? lastDate.split('T')[0] : `${lastDate.getFullYear()}-${String(lastDate.getMonth() + 1).padStart(2, '0')}-${String(lastDate.getDate()).padStart(2, '0')}`;
+  const lastDateStr = lastDateParsed == null ? null : `${lastDateParsed.getFullYear()}-${String(lastDateParsed.getMonth() + 1).padStart(2, '0')}-${String(lastDateParsed.getDate()).padStart(2, '0')}`;
   const isToday = lastDateStr === todayStr;
-  const formatTime = (dateStr) => {
-    if (!dateStr) return '';
-    const d = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  const formatTime = (d) => {
+    if (!d) return '';
+    const dateObj = d instanceof Date ? d : parseUtcDate(d);
+    return dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
   const enjoymentStr = p.enjoyment ?? '';
@@ -45,7 +47,7 @@ function mapToHabitTile(habitFromApi, streakFromApi, habitId, index) {
     lastCheckInDate: lastDate,
     lastCheckIn: {
       done: !!isToday,
-      time: isToday ? formatTime(lastDate) : null,
+      time: isToday ? formatTime(lastDateParsed ?? lastDate) : null,
     },
     checkInTime: '8:00 AM',
     color: HABIT_COLORS[index % HABIT_COLORS.length],

@@ -12,6 +12,15 @@ from app.models.streak import StreakResponse, StreakUpdateRequest
 logger = logging.getLogger(__name__)
 
 
+def _ensure_utc(dt):
+    """Ensure datetime is timezone-aware UTC so Pydantic serializes with 'Z' (works in production)."""
+    if dt is None:
+        return None
+    if isinstance(dt, datetime) and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 class StreakService:
     """Service for streak-related operations."""
     
@@ -51,8 +60,8 @@ class StreakService:
                     lastCheckInDate=None
                 )
             
-            # Extract data - keep datetime for response so frontend gets actual check-in time
-            last_check_in_date = streak.get("lastCheckInDate")
+            # Extract data - normalize to UTC-aware so JSON has "Z" (fixes Vercel/Railway display)
+            last_check_in_date = _ensure_utc(streak.get("lastCheckInDate"))
             
             result = StreakResponse(
                 currentStreak=streak.get("currentStreak", 0),
@@ -204,8 +213,8 @@ class StreakService:
                 updated_doc = await db.streaks.find_one({"_id": result.inserted_id})
                 logger.info(f"Successfully created streak - _id: {updated_doc['_id']}")
             
-            # Prepare response - return full datetime so frontend shows actual check-in time
-            last_check_in_date = updated_doc.get("lastCheckInDate")
+            # Prepare response - normalize to UTC-aware so JSON has "Z" (fixes Vercel/Railway display)
+            last_check_in_date = _ensure_utc(updated_doc.get("lastCheckInDate"))
             
             response = StreakResponse(
                 currentStreak=updated_doc.get("currentStreak", 0),

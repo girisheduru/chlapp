@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { reflectionsAPI } from '../services/api';
+import { parseUtcDate } from '../utils/dateUtils';
 
 /**
  * Build userData and weekData from habit (from Home tile) for reflection flow.
@@ -33,9 +34,7 @@ function buildReflectionData(habit) {
 
   const streakDays = habit?.streakDays ?? 0;
   const lastDate = habit?.lastCheckInDate;
-  const lastDateObj = lastDate
-    ? (typeof lastDate === 'string' ? new Date(lastDate) : lastDate)
-    : null;
+  const lastDateObj = lastDate ? parseUtcDate(lastDate) : null;
 
   // Set of YYYY-MM-DD strings for days that had check-ins (consecutive streak ending on lastCheckInDate)
   const checkInDates = new Set();
