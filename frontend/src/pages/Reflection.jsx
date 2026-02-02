@@ -22,20 +22,47 @@ function buildReflectionData(habit) {
     totalStones: habit?.totalStones ?? 0,
   };
 
-  // Placeholder week: last 7 days. Backend doesn't have per-day check-in type yet.
+  // Build week view from streak: lastCheckInDate + streakDays = which days had check-ins
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+  const daysSinceMonday = (today.getDay() + 6) % 7; // 0=Mon, 6=Sun
+  startOfWeek.setDate(today.getDate() - daysSinceMonday);
   const weekRange = `${formatShortDate(startOfWeek)} – ${formatShortDate(new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000))}`;
+
+  const streakDays = habit?.streakDays ?? 0;
+  const lastDate = habit?.lastCheckInDate;
+  const lastDateObj = lastDate
+    ? (typeof lastDate === 'string' ? new Date(lastDate) : lastDate)
+    : null;
+
+  // Set of YYYY-MM-DD strings for days that had check-ins (consecutive streak ending on lastCheckInDate)
+  const checkInDates = new Set();
+  if (lastDateObj && streakDays > 0) {
+    const last = new Date(lastDateObj);
+    last.setHours(0, 0, 0, 0);
+    for (let i = 0; i < streakDays; i++) {
+      const d = new Date(last);
+      d.setDate(last.getDate() - i);
+      checkInDates.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    }
+  }
+
+  const msPerDay = 24 * 60 * 60 * 1000;
   const weekData = {
     weekRange,
-    days: dayLabels.map((day, i) => ({
-      day,
-      type: 'baseline',
-      obstacle: null,
-      helpers: [],
-    })),
+    days: dayLabels.map((day, i) => {
+      const dayDate = new Date(startOfWeek.getTime() + i * msPerDay);
+      const dateStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
+      const type = checkInDates.has(dateStr) ? 'baseline' : 'skip';
+      return {
+        day,
+        type,
+        obstacle: null,
+        helpers: [],
+      };
+    }),
   };
 
   return { userData, weekData };

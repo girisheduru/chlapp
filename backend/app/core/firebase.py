@@ -15,6 +15,12 @@ from app.core.config import is_firebase_configured, settings
 logger = logging.getLogger(__name__)
 
 _firebase_initialized = False
+_firebase_sdk_unavailable = False
+
+
+def is_firebase_ready() -> bool:
+    """True if Firebase Admin SDK is initialized and can verify tokens."""
+    return _firebase_initialized
 
 
 def init_firebase() -> None:
@@ -34,7 +40,16 @@ def init_firebase() -> None:
     try:
         import firebase_admin
         from firebase_admin import credentials
+    except ModuleNotFoundError:
+        global _firebase_sdk_unavailable
+        _firebase_sdk_unavailable = True
+        logger.warning(
+            "firebase_admin not installed; auth will be skipped. "
+            "Install with: pip install firebase-admin"
+        )
+        return
 
+    try:
         if settings.google_application_credentials_json:
             raw = settings.google_application_credentials_json
             # .env / shell may turn \n into real newlines; JSON disallows unescaped control chars
@@ -62,7 +77,7 @@ def verify_id_token(token: str) -> Optional[dict[str, Any]]:
     Verify a Firebase ID token and return the decoded claims (uid, email, etc.).
     Returns None if token is invalid or Firebase is not initialized.
     """
-    if not is_firebase_configured():
+    if not is_firebase_configured() or _firebase_sdk_unavailable:
         return None
     if not token or not token.strip():
         return None

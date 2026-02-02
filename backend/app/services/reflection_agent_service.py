@@ -114,10 +114,15 @@ def generate_reflection_items_with_agent(
     Run the ReAct agent to generate reflection items (insights, questions, experiment suggestions).
     Agent may use Tavily to search for James Clear / Atomic Habits content.
     Returns a dict matching ReflectionItemsResponse shape (insights, reflectionQuestions, experimentSuggestions).
+    Raises ImportError/ModuleNotFoundError if langchain dependencies are missing (caller falls back to direct LLM).
     """
     try:
         from langchain_core.messages import HumanMessage, SystemMessage
+    except ModuleNotFoundError as e:
+        logger.debug("LangChain not available, use direct LLM fallback: %s", e)
+        raise
 
+    try:
         agent = _get_agent()
         system_prompt = get_reflection_agent_system_prompt()
         user_prompt = get_reflection_agent_user_prompt(habit_context, streak_data)
@@ -152,6 +157,8 @@ def generate_reflection_items_with_agent(
     except json.JSONDecodeError as e:
         logger.warning("Reflection agent response was not valid JSON: %s", e)
         raise ValueError(f"Agent did not return valid JSON: {e}") from e
+    except (ImportError, ModuleNotFoundError):
+        raise
     except Exception as e:
         logger.error("Reflection agent error: %s", e, exc_info=True)
         raise
