@@ -2,6 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
+releaseCommand = "python3 migrate_checkin_history.py"
 startCommand = "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
 healthcheckPath = "/health"
 healthcheckTimeout = 100

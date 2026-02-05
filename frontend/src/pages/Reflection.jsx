@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { reflectionsAPI } from '../services/api';
-// dateUtils import removed - checkInHistory is already in YYYY-MM-DD format
+import { parseUtcDate } from '../utils/dateUtils';
 
 /**
  * Build userData and weekData from habit (from Home tile) for reflection flow.
@@ -23,7 +23,7 @@ function buildReflectionData(habit) {
     totalStones: habit?.totalStones ?? 0,
   };
 
-  // Build week view from checkInHistory (actual check-in dates, not just consecutive streak)
+  // Build week view from checkInHistory (actual check-in dates)
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -32,9 +32,23 @@ function buildReflectionData(habit) {
   startOfWeek.setDate(today.getDate() - daysSinceMonday);
   const weekRange = `${formatShortDate(startOfWeek)} – ${formatShortDate(new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000))}`;
 
-  // Use checkInHistory (array of YYYY-MM-DD strings) for accurate display
+  // Use checkInHistory if available, otherwise fall back to calculating from streak
   const checkInHistory = habit?.checkInHistory ?? [];
-  const checkInDates = new Set(checkInHistory);
+  let checkInDates = new Set(checkInHistory);
+  
+  // Fallback: if checkInHistory is empty but we have streak data, calculate from currentStreak + lastCheckInDate
+  if (checkInDates.size === 0 && habit?.lastCheckInDate && habit?.streakDays > 0) {
+    const lastDateObj = parseUtcDate(habit.lastCheckInDate);
+    if (lastDateObj) {
+      const last = new Date(lastDateObj);
+      last.setHours(0, 0, 0, 0);
+      for (let i = 0; i < habit.streakDays; i++) {
+        const d = new Date(last);
+        d.setDate(last.getDate() - i);
+        checkInDates.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+      }
+    }
+  }
 
   const msPerDay = 24 * 60 * 60 * 1000;
   const weekData = {
