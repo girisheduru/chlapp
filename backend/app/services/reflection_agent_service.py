@@ -138,14 +138,40 @@ def _extract_json_from_response(content: str) -> dict:
     text = (content or "").strip()
     if not text:
         raise ValueError("Empty agent response")
+    
+    original_text = text  # Keep for logging if parse fails
+    
+    # Strip markdown code blocks
     if text.startswith("```"):
         lines = text.split("\n")
         if lines[0].startswith("```"):
             lines = lines[1:]
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
-        text = "\n".join(lines)
-    return json.loads(text)
+        text = "\n".join(lines).strip()
+    
+    # Try to find JSON object in the response (handle text before/after JSON)
+    if not text.startswith("{"):
+        start = text.find("{")
+        if start != -1:
+            # Find matching closing brace
+            depth = 0
+            end = start
+            for i, c in enumerate(text[start:], start):
+                if c == "{":
+                    depth += 1
+                elif c == "}":
+                    depth -= 1
+                    if depth == 0:
+                        end = i + 1
+                        break
+            text = text[start:end]
+    
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        logger.error("Failed to parse JSON from agent response. Original content: %s", original_text[:500])
+        raise
 
 
 def generate_reflection_items_with_agent(
@@ -184,16 +210,32 @@ def generate_reflection_items_with_agent(
         out_messages = result.get("messages", [])
         if not out_messages:
             raise ValueError("Agent returned no messages")
+        
+        logger.debug("Agent returned %d messages", len(out_messages))
+        
         # Final answer is the last AI message (after any tool calls)
         content = None
         for m in reversed(out_messages):
             if getattr(m, "type", "") == "ai" or type(m).__name__ == "AIMessage":
                 c = getattr(m, "content", None)
+                # Handle content that may be a list (tool calls) vs string
+                if isinstance(c, list):
+                    # Extract text content from list items
+                    text_parts = [item.get("text", "") if isinstance(item, dict) else str(item) for item in c]
+                    c = " ".join(text_parts).strip()
                 if c and isinstance(c, str) and c.strip():
                     content = c.strip()
+                    logger.debug("Found AI message content: %s...", content[:100] if len(content) > 100 else content)
                     break
+        
         if not content:
-            content = getattr(out_messages[-1], "content", None) or str(out_messages[-1])
+            last_msg = out_messages[-1]
+            last_content = getattr(last_msg, "content", None)
+            logger.warning("No AI message with content found. Last message type: %s, content type: %s, content: %s",
+                          type(last_msg).__name__, type(last_content).__name__ if last_content else None,
+                          str(last_content)[:200] if last_content else "None")
+            content = last_content if isinstance(last_content, str) else str(last_msg)
+        
         if not content:
             raise ValueError("Agent final message has no content")
 
