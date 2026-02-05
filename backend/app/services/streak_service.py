@@ -57,7 +57,8 @@ class StreakService:
                     currentStreak=0,
                     longestStreak=0,
                     totalStones=0,
-                    lastCheckInDate=None
+                    lastCheckInDate=None,
+                    checkInHistory=[]
                 )
             
             # Extract data - normalize to UTC-aware so JSON has "Z" (fixes Vercel/Railway display)
@@ -67,7 +68,8 @@ class StreakService:
                 currentStreak=streak.get("currentStreak", 0),
                 longestStreak=streak.get("longestStreak", 0),
                 totalStones=streak.get("totalStones", 0),
-                lastCheckInDate=last_check_in_date
+                lastCheckInDate=last_check_in_date,
+                checkInHistory=streak.get("checkInHistory", [])
             )
             
             logger.debug(f"Successfully retrieved streak for userId: {userId}, habitId: {habitId}")
@@ -108,7 +110,8 @@ class StreakService:
                 f"habitId: {request.habitId}, checkInDate: {request.checkInDate}"
             )
             
-            # Parse check-in date/time: use checkInDateTime (actual time) if provided, else midnight
+            # Parse check-in date (user's local date) and datetime (for timestamp)
+            # IMPORTANT: Use checkInDate (local date) for history/streak, not date extracted from checkInDateTime (UTC)
             try:
                 check_in_date = datetime.strptime(request.checkInDate, "%Y-%m-%d").date()
                 if request.checkInDateTime:
@@ -118,7 +121,7 @@ class StreakService:
                         )
                         if check_in_datetime.tzinfo is None:
                             check_in_datetime = check_in_datetime.replace(tzinfo=timezone.utc)
-                        check_in_date = check_in_datetime.date()
+                        # NOTE: Do NOT override check_in_date from datetime - keep user's local date
                     except (ValueError, TypeError):
                         check_in_datetime = datetime.combine(
                             check_in_date, datetime.min.time()
@@ -189,9 +192,15 @@ class StreakService:
                     "updatedAt": now
                 }
                 
+                # Add check-in date to history (YYYY-MM-DD format, avoid duplicates with $addToSet)
+                check_in_date_str = check_in_date.isoformat()
+                
                 await db.streaks.update_one(
                     {"_id": existing["_id"]},
-                    {"$set": update_data}
+                    {
+                        "$set": update_data,
+                        "$addToSet": {"checkInHistory": check_in_date_str}
+                    }
                 )
                 
                 updated_doc = await db.streaks.find_one({"_id": existing["_id"]})
@@ -199,6 +208,7 @@ class StreakService:
             else:
                 logger.debug("Creating new streak")
                 # Create new streak - first check-in
+                check_in_date_str = check_in_date.isoformat()
                 new_streak = {
                     "userId": request.userId,  # Store as string to match habits collection
                     "habitId": request.habitId,  # Store as string to match habits collection
@@ -206,6 +216,7 @@ class StreakService:
                     "longestStreak": 1,
                     "totalStones": 1,
                     "lastCheckInDate": check_in_datetime,  # Store as datetime for MongoDB
+                    "checkInHistory": [check_in_date_str],  # Initialize with first check-in date
                     "createdAt": now,
                     "updatedAt": now
                 }
@@ -220,7 +231,8 @@ class StreakService:
                 currentStreak=updated_doc.get("currentStreak", 0),
                 longestStreak=updated_doc.get("longestStreak", 0),
                 totalStones=updated_doc.get("totalStones", 0),
-                lastCheckInDate=last_check_in_date
+                lastCheckInDate=last_check_in_date,
+                checkInHistory=updated_doc.get("checkInHistory", [])
             )
             
             return response

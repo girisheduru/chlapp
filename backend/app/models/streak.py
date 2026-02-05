@@ -56,3 +56,4 @@ class StreakResponse(BaseModel):
     longestStreak: int = Field(..., description="Longest streak achieved")
     totalStones: int = Field(0, ge=0, description="Total stones (check-ins) in jar")
     lastCheckInDate: Optional[datetime] = Field(None, description="Last check-in date/time (ISO datetime)")
+    checkInHistory: list[str] = Field(default_factory=list, description="List of check-in dates in YYYY-MM-DD format")

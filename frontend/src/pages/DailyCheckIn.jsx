@@ -111,7 +111,8 @@ const DailyCheckIn = () => {
 
     try {
       const today = new Date();
-      const checkInDate = today.toISOString().split('T')[0];
+      // Use LOCAL date (not UTC) so check-in is recorded for user's actual calendar day
+      const checkInDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const checkInDateTime = today.toISOString();
 
       // Update streak via API (include checkInDateTime so backend stores actual time)

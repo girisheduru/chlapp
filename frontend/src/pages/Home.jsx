@@ -45,6 +45,7 @@ function mapToHabitTile(habitFromApi, streakFromApi, habitId, index) {
     totalStones: streakFromApi?.totalStones ?? streakFromApi?.longestStreak ?? 0,
     streakDays: streakFromApi?.currentStreak ?? 0,
     lastCheckInDate: lastDate,
+    checkInHistory: streakFromApi?.checkInHistory ?? [],
     lastCheckIn: {
       done: !!isToday,
       time: isToday ? formatTime(lastDateParsed ?? lastDate) : null,
