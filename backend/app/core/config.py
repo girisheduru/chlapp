@@ -36,6 +36,13 @@ class Settings(BaseSettings):
 
     # Tavily (optional — for reflection agent web search / James Clear content)
     tavily_api_key: Optional[str] = None
+
+    # Opik (optional — LLM observability and tracing)
+    opik_api_key: Optional[str] = None
+    opik_workspace: Optional[str] = None  # Your Opik/Comet workspace name
+    opik_project_name: str = "2026 Hackathon Opik"  # Project name in Opik dashboard
+    opik_url: str = "https://www.comet.com/opik/api"  # Opik Cloud URL
+    opik_enabled: bool = False  # Set to true to enable tracing
     
     # Application settings
     app_name: str = "CHL API"

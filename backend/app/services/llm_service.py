@@ -7,8 +7,73 @@ import httpx
 from typing import Optional, List
 from app.core.config import settings
 import json
+import os
 
 logger = logging.getLogger(__name__)
+
+
+def _configure_opik():
+    """Configure Opik if enabled. Called once at module load."""
+    # Debug: print settings values
+    print(f"[OPIK DEBUG] opik_enabled={settings.opik_enabled}")
+    print(f"[OPIK DEBUG] opik_api_key={'SET' if settings.opik_api_key else 'NOT SET'}")
+    print(f"[OPIK DEBUG] opik_workspace={settings.opik_workspace}")
+    print(f"[OPIK DEBUG] opik_project_name={settings.opik_project_name}")
+    print(f"[OPIK DEBUG] opik_url={settings.opik_url}")
+    
+    if not settings.opik_enabled:
+        print("[OPIK DEBUG] Opik is DISABLED, skipping configuration")
+        return
+    try:
+        import opik
+        print(f"[OPIK DEBUG] opik module imported successfully, version: {getattr(opik, '__version__', 'unknown')}")
+        
+        # Set env vars for Opik SDK (it reads from env)
+        if settings.opik_api_key:
+            os.environ["OPIK_API_KEY"] = settings.opik_api_key
+        if settings.opik_workspace:
+            os.environ["OPIK_WORKSPACE"] = settings.opik_workspace
+        os.environ["OPIK_PROJECT_NAME"] = settings.opik_project_name
+        os.environ["OPIK_URL_OVERRIDE"] = settings.opik_url
+        
+        # Configure Opik with explicit parameters for Cloud
+        opik.configure(
+            api_key=settings.opik_api_key,
+            workspace=settings.opik_workspace,
+            url=settings.opik_url,
+            use_local=False,
+        )
+        print("[OPIK DEBUG] opik.configure() completed successfully")
+        logger.info(
+            "Opik configured for LLM tracing (project: %s, workspace: %s)", 
+            settings.opik_project_name, 
+            settings.opik_workspace
+        )
+    except ImportError as e:
+        print(f"[OPIK DEBUG] ImportError: {e}")
+        logger.warning("Opik not installed; tracing disabled. Run: pip install opik")
+    except Exception as e:
+        print(f"[OPIK DEBUG] Exception: {e}")
+        logger.warning("Failed to configure Opik: %s", e)
+
+
+def _get_track_decorator():
+    """Return Opik @track decorator if enabled, else a no-op passthrough."""
+    if not settings.opik_enabled:
+        print("[OPIK DEBUG] _get_track_decorator: returning no-op (opik disabled)")
+        return lambda f: f  # no-op
+    try:
+        from opik import track
+        print("[OPIK DEBUG] _get_track_decorator: returning opik.track decorator")
+        return track
+    except ImportError as e:
+        print(f"[OPIK DEBUG] _get_track_decorator: ImportError {e}, returning no-op")
+        return lambda f: f
+
+
+# Configure Opik at module load
+_configure_opik()
+_track = _get_track_decorator()
 
 
 class LLMService:
@@ -20,7 +85,8 @@ class LLMService:
         self.base_url = settings.llm_api_base_url or "https://api.openai.com/v1"
         self.temperature = settings.llm_temperature
         self.max_tokens = settings.llm_max_tokens
-    
+
+    @_track
     async def generate_text(
         self,
         prompt: str,

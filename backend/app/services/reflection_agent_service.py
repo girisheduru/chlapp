@@ -19,6 +19,48 @@ logger = logging.getLogger(__name__)
 _agent = None
 _llm = None
 _tools = None
+_opik_tracer = None
+
+
+def _get_opik_tracer():
+    """Get OpikTracer for LangChain if Opik is enabled, else None."""
+    global _opik_tracer
+    if _opik_tracer is not None:
+        return _opik_tracer
+    if not settings.opik_enabled:
+        return None
+    try:
+        from opik.integrations.langchain import OpikTracer
+        import opik
+        # Set env vars for Opik SDK
+        if settings.opik_api_key:
+            os.environ["OPIK_API_KEY"] = settings.opik_api_key
+        if settings.opik_workspace:
+            os.environ["OPIK_WORKSPACE"] = settings.opik_workspace
+        os.environ["OPIK_PROJECT_NAME"] = settings.opik_project_name
+        os.environ["OPIK_URL_OVERRIDE"] = settings.opik_url
+        
+        # Configure Opik for Cloud
+        opik.configure(
+            api_key=settings.opik_api_key,
+            workspace=settings.opik_workspace,
+            url=settings.opik_url,
+            use_local=False,
+        )
+        
+        _opik_tracer = OpikTracer(
+            project_name=settings.opik_project_name,
+            tags=["reflection-agent", "langchain"],
+        )
+        logger.info("OpikTracer initialized for reflection agent (project: %s, workspace: %s)", 
+                    settings.opik_project_name, settings.opik_workspace)
+        return _opik_tracer
+    except ImportError:
+        logger.debug("Opik LangChain integration not available")
+        return None
+    except Exception as e:
+        logger.warning("Failed to initialize OpikTracer: %s", e)
+        return None
 
 
 def _tavily_configured() -> bool:
@@ -133,7 +175,10 @@ def generate_reflection_items_with_agent(
         ]
 
         # Agent expects input dict with "messages" key
-        result = agent.invoke({"messages": messages})
+        # Add OpikTracer callback if enabled
+        opik_tracer = _get_opik_tracer()
+        invoke_config = {"callbacks": [opik_tracer]} if opik_tracer else None
+        result = agent.invoke({"messages": messages}, config=invoke_config)
 
         # Result is a dict with "messages" list; take the last AI message as final answer
         out_messages = result.get("messages", [])
