@@ -9,6 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.database import get_database
 from app.models.streak import StreakResponse, StreakUpdateRequest
 from app.services.streak_service import streak_service
+from app.services.reflection_cache_service import trigger_background_reflection_generation
 from app.core.auth import CurrentUser, get_current_user
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,11 @@ async def update_user_habit_streak_by_id(
         )
         
         result = await streak_service.update_streak_by_checkin(db, request_data)
+        
+        # Trigger background generation of reflection items (fire-and-forget)
+        # This pre-caches the LLM response so Reflection page loads instantly
+        trigger_background_reflection_generation(db, current_user.uid, request_data.habitId)
+        
         return result
         
     except ValueError as ve:

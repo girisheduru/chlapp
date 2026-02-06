@@ -17,6 +17,7 @@ from app.models.reflection import (
 from app.services.llm_service import llm_service
 from app.services.habit_service import habit_service
 from app.services.streak_service import streak_service
+from app.services.reflection_cache_service import reflection_cache_service
 from app.utils.prompts import (
     get_reflection_inputs_prompt,
     get_reflection_items_prompt,
@@ -116,37 +117,47 @@ async def get_reflection_items(
     try:
         logger.info(f"GET /getReflectionItems - userId: {uid}, habitId: {habitId}")
 
-        habit_context = await habit_service.get_habit_context(db, uid, habitId)
-        if not habit_context:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Habit not found for userId={uid}, habitId={habitId}",
-            )
+        # Check cache first (populated by background task after check-in)
+        cached_data = await reflection_cache_service.get_cached_reflection(db, uid, habitId)
+        if cached_data:
+            logger.info(f"Returning cached reflection items for user={uid}, habit={habitId}")
+            data = cached_data
+        else:
+            # Cache miss - generate fresh data
+            habit_context = await habit_service.get_habit_context(db, uid, habitId)
+            if not habit_context:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Habit not found for userId={uid}, habitId={habitId}",
+                )
 
-        streak = await streak_service.get_streak_by_id(db, uid, habitId)
-        streak_data = {
-            "currentStreak": streak.currentStreak,
-            "longestStreak": streak.longestStreak,
-            "totalStones": getattr(streak, "totalStones", streak.longestStreak),
-            "lastCheckInDate": str(streak.lastCheckInDate) if streak.lastCheckInDate else None,
-        }
+            streak = await streak_service.get_streak_by_id(db, uid, habitId)
+            streak_data = {
+                "currentStreak": streak.currentStreak,
+                "longestStreak": streak.longestStreak,
+                "totalStones": getattr(streak, "totalStones", streak.longestStreak),
+                "lastCheckInDate": str(streak.lastCheckInDate) if streak.lastCheckInDate else None,
+            }
 
-        data = None
-        try:
-            from app.services.reflection_agent_service import (
-                generate_reflection_items_with_agent_async,
-            )
-            data = await generate_reflection_items_with_agent_async(
-                habit_context, streak_data
-            )
-            logger.info("Reflection items generated via LangChain ReAct agent (with optional Tavily)")
-        except (ImportError, ValueError, Exception) as agent_err:
-            logger.debug(
-                "Reflection agent unavailable or failed, falling back to direct LLM: %s",
-                agent_err,
-            )
-            prompt = get_reflection_items_prompt(habit_context, streak_data)
-            data = await llm_service.generate_json(prompt)
+            data = None
+            try:
+                from app.services.reflection_agent_service import (
+                    generate_reflection_items_with_agent_async,
+                )
+                data = await generate_reflection_items_with_agent_async(
+                    habit_context, streak_data
+                )
+                logger.info("Reflection items generated via LangChain ReAct agent (with optional Tavily)")
+            except (ImportError, ValueError, Exception) as agent_err:
+                logger.debug(
+                    "Reflection agent unavailable or failed, falling back to direct LLM: %s",
+                    agent_err,
+                )
+                prompt = get_reflection_items_prompt(habit_context, streak_data)
+                data = await llm_service.generate_json(prompt)
+            
+            # Save to cache for future requests
+            await reflection_cache_service.save_cached_reflection(db, uid, habitId, data)
 
         insights = [
             InsightItem(

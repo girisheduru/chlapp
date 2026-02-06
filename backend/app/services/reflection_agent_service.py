@@ -79,9 +79,9 @@ def _get_tools():
 
         _tools = [
             TavilySearch(
-                max_results=5,
+                max_results=3,
                 topic="general",
-                search_depth="advanced",
+                search_depth="basic",
                 include_answer=True,
             )
         ]
