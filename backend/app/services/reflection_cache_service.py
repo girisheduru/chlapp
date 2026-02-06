@@ -47,6 +47,9 @@ class ReflectionCacheService:
             # Check if cache is still fresh
             cached_at = cache_doc.get("cachedAt")
             if cached_at:
+                # Ensure cached_at is timezone-aware (MongoDB may return naive datetime)
+                if cached_at.tzinfo is None:
+                    cached_at = cached_at.replace(tzinfo=timezone.utc)
                 age_seconds = (datetime.now(timezone.utc) - cached_at).total_seconds()
                 if age_seconds > CACHE_TTL_SECONDS:
                     logger.debug(f"Cache expired (age={age_seconds:.0f}s) for user={user_id}, habit={habit_id}")
