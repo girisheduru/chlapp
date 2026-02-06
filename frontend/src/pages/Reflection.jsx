@@ -571,9 +571,11 @@ export default function Reflection() {
         highlight: "That's identity in action — showing up even when it's hard.",
       });
     }
-    if (stats.skipObstacles && stats.skipObstacles.length >= 2) {
+    // Only show obstacle insight if we have actual obstacle data (not null)
+    const validObstacles = (stats.skipObstacles || []).filter(o => o != null && o !== '');
+    if (validObstacles.length >= 2) {
       const obstacleLabels = { energy: 'low energy', mental: 'mental load', time: 'time/schedule' };
-      const obstacleList = stats.skipObstacles.map(o => obstacleLabels[o] || o);
+      const obstacleList = validObstacles.map(o => obstacleLabels[o] || o);
       list.push({
         id: 'obstacles',
         emoji: '🔍',
@@ -684,13 +686,38 @@ export default function Reflection() {
         <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, margin: 0 }}>Week of {weekData.weekRange}</p>
       </div>
       <WeekTracker weekData={weekData} stats={stats} />
-      {insights.length > 0 && (
+      {reflectionItemsLoading ? (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          gap: 12, 
+          padding: 24, 
+          marginBottom: 20,
+          background: colors.background,
+          borderRadius: 12,
+          border: `1px solid ${colors.border}`,
+        }}>
+          <div style={{
+            width: 20,
+            height: 20,
+            border: `2px solid ${colors.border}`,
+            borderTopColor: colors.primary,
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }} />
+          <span style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>
+            Generating personalized insights...
+          </span>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      ) : insights.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
           {insights.map((insight) => (
             <InsightCard key={insight.id} emoji={insight.emoji} text={insight.text} highlight={insight.highlight} />
           ))}
         </div>
-      )}
+      ) : null}
       <div style={{ background: colors.background, borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <p style={{ fontFamily: fonts.body, fontSize: 12, fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 14px 0' }}>Reflect on this week</p>
         <ReflectionQuestionInput
