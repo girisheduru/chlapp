@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     
     # LLM settings
     llm_api_key: Optional[str] = None
-    llm_model: str = "gpt-4"  # Default model, can be overridden
+    llm_model: str = "gpt-4o-mini"  # Fast, cheap, good quality model
     llm_api_base_url: Optional[str] = None  # For custom API endpoints
     llm_temperature: float = 0.7
     llm_max_tokens: int = 1000

@@ -174,6 +174,8 @@ frontend/
 - **Reflection** - AI-powered reflection flow
   - Loads insights, questions, and experiment suggestions via `GET /api/v1/getReflectionItems`
   - Displays personalized insights based on habit and streak data
+  - Shows loading spinner while fetching AI-generated content
+  - Instant loading when cached (background generation after check-in)
   - Offers experiment suggestions for habit improvement
 
 ### Shared Components (`src/components/`)

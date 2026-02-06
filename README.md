@@ -50,6 +50,7 @@ chlapp/
 - ✅ RESTful API endpoints for habits, streaks, and reflections
 - ✅ LLM service integration for generating habit options, identities, cues, and reflection insights
 - ✅ LangChain ReAct agent with optional Tavily web search for James Clear / Atomic Habits content
+- ✅ Reflection caching with background generation after check-in (instant page loads)
 - ✅ Opik integration for LLM observability and tracing (optional)
 - ✅ CORS enabled for frontend integration (supports Vercel preview URLs)
 - ✅ Comprehensive error handling and logging
@@ -199,6 +200,7 @@ All API endpoints are prefixed with `/api/v1`. Most endpoints require Firebase a
 - `GET /api/v1/getReflectionItems` - Get reflection items (insights, questions, experiment suggestions)
   - Uses LangChain ReAct agent with optional Tavily web search
   - Falls back to direct LLM if agent unavailable
+  - Cached in MongoDB after check-in for instant page loads
 
 ### Admin
 
@@ -247,6 +249,15 @@ All API endpoints are prefixed with `/api/v1`. Most endpoints require Firebase a
 - **Collection name**: `reflections`
 - **Fields**: User reflection data
 
+### Reflection Cache Collection
+- **Collection name**: `reflection_cache`
+- **Fields**:
+  - `userId` (string): Firebase UID
+  - `habitId` (string): Habit identifier
+  - `data` (object): Cached reflection items (insights, questions, experiments)
+  - `cachedAt` (datetime): When the cache was created
+- **TTL**: 1 hour (cache expires and refreshes after check-in)
+
 ## Services Architecture
 
 ### Backend Services
@@ -268,8 +279,14 @@ All API endpoints are prefixed with `/api/v1`. Most endpoints require Firebase a
 
 - **ReflectionAgentService** (`app/services/reflection_agent_service.py`):
   - LangChain ReAct agent for generating reflection insights
-  - Optional Tavily web search for James Clear / Atomic Habits content
+  - Optional Tavily web search for James Clear / Atomic Habits content (basic search for speed)
   - Falls back to direct LLM if dependencies unavailable
+
+- **ReflectionCacheService** (`app/services/reflection_cache_service.py`):
+  - MongoDB caching for LLM-generated reflection items
+  - Background generation triggered after check-in
+  - 1-hour TTL for cache freshness
+  - Enables instant Reflection page loads
 
 ### Frontend Services
 
@@ -299,7 +316,7 @@ DATABASE_NAME=chl_datastore_db
 
 # LLM (OpenAI or compatible API)
 LLM_API_KEY=your_api_key_here
-LLM_MODEL=gpt-4
+LLM_MODEL=gpt-4o-mini  # Fast, cheap, good quality (default)
 LLM_TEMPERATURE=0.7
 LLM_MAX_TOKENS=1000
 # LLM_API_BASE_URL=https://api.openai.com/v1  # Optional, for custom endpoints
