@@ -6,7 +6,7 @@ import { AddHabitButton } from '../components/AddHabitButton';
 import { useAuth } from '../contexts/AuthContext';
 import { getOrCreateUserAndHabitIds } from '../utils/userStorage';
 import { parseUtcDate } from '../utils/dateUtils';
-import { habitsAPI, streaksAPI } from '../services/api';
+import { habitsAPI, streaksAPI, reflectionsAPI } from '../services/api';
 
 const HABIT_COLORS = ['#4A7C59', '#6B5D4D', '#5C6B8A'];
 
@@ -85,6 +85,11 @@ export default function Home() {
       );
       const tiles = habitsRes.map((h, i) => mapToHabitTile(h, streaks[i], h.habitId, i));
       setUserHabits(tiles);
+      
+      // Prefetch reflection items in background (so Reflection page loads instantly)
+      reflectionsAPI.prefetchReflections().catch((err) => {
+        console.debug('Reflection prefetch failed (non-blocking):', err);
+      });
     } catch (err) {
       console.error('Failed to load home data:', err);
       if (err?.status === 401 || err?.message?.includes('401')) {

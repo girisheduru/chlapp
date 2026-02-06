@@ -189,6 +189,9 @@ export const reflectionsAPI = {
   /** Get list of reflection question prompts (all habits). Optional userId for compatibility. */
   getReflectionInputs: (userId) =>
     apiRequest(`/getReflectionInputs?userId=${encodeURIComponent(userId)}`),
+  /** Prefetch reflection items for all user habits (triggers background generation). */
+  prefetchReflections: () =>
+    apiRequest('/prefetchReflections', { method: 'POST' }),
 };
 
 /**

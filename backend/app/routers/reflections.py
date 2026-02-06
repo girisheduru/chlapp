@@ -217,3 +217,41 @@ async def get_reflection_items(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generating reflection items: {str(e)}",
         )
+
+
+@router.post(
+    "/prefetchReflections",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Prefetch reflection items for all user habits",
+    description="Trigger background generation of reflection items for habits without fresh cache. Called on Home page load.",
+)
+async def prefetch_reflections(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Prefetch reflection items for all user habits.
+    Triggers background generation only for habits without fresh cache.
+    Returns immediately with counts of triggered/skipped habits.
+    """
+    uid = current_user.uid
+    try:
+        logger.info(f"POST /prefetchReflections - userId: {uid}")
+        
+        result = await reflection_cache_service.prefetch_all_user_reflections(db, uid)
+        
+        logger.info(f"Prefetch result for user={uid}: {result}")
+        return {
+            "status": "accepted",
+            "message": f"Prefetching {result.get('triggered', 0)} reflection(s) in background",
+            "triggered": result.get("triggered", 0),
+            "skipped": result.get("skipped", 0),
+            "total": result.get("total", 0),
+        }
+    except Exception as e:
+        logger.error(f"Error prefetching reflections: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error prefetching reflections: {str(e)}",
+        )

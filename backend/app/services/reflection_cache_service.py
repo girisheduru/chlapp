@@ -168,6 +168,76 @@ class ReflectionCacheService:
             return None
 
 
+    async def is_cache_fresh(
+        self,
+        db: AsyncIOMotorDatabase,
+        user_id: str,
+        habit_id: str,
+    ) -> bool:
+        """
+        Check if cache exists and is fresh (not expired).
+        Used to skip prefetch if cache is already good.
+        """
+        try:
+            cache_doc = await db[CACHE_COLLECTION].find_one(
+                {"userId": user_id, "habitId": habit_id},
+                {"cachedAt": 1}
+            )
+            if not cache_doc:
+                return False
+            
+            cached_at = cache_doc.get("cachedAt")
+            if not cached_at:
+                return False
+            
+            if cached_at.tzinfo is None:
+                cached_at = cached_at.replace(tzinfo=timezone.utc)
+            
+            age_seconds = (datetime.now(timezone.utc) - cached_at).total_seconds()
+            return age_seconds <= CACHE_TTL_SECONDS
+        except Exception:
+            return False
+
+    async def prefetch_all_user_reflections(
+        self,
+        db: AsyncIOMotorDatabase,
+        user_id: str,
+    ) -> dict:
+        """
+        Prefetch reflections for all user habits that don't have fresh cache.
+        Called on Home page load to warm up cache.
+        Returns dict with counts of triggered/skipped habits.
+        """
+        triggered = 0
+        skipped = 0
+        
+        try:
+            # Get all habits for user
+            habits_cursor = db.habits.find({"userId": user_id}, {"habitId": 1})
+            habits = await habits_cursor.to_list(length=None)
+            
+            for habit_doc in habits:
+                habit_id = habit_doc.get("habitId")
+                if not habit_id:
+                    continue
+                
+                # Check if cache is fresh
+                is_fresh = await self.is_cache_fresh(db, user_id, habit_id)
+                if is_fresh:
+                    skipped += 1
+                    logger.debug(f"Prefetch skipped (fresh cache): user={user_id}, habit={habit_id}")
+                else:
+                    # Trigger background generation
+                    trigger_background_reflection_generation(db, user_id, habit_id)
+                    triggered += 1
+                    logger.info(f"Prefetch triggered: user={user_id}, habit={habit_id}")
+            
+            return {"triggered": triggered, "skipped": skipped, "total": len(habits)}
+        except Exception as e:
+            logger.error(f"Error prefetching reflections: {e}")
+            return {"triggered": triggered, "skipped": skipped, "error": str(e)}
+
+
 # Singleton instance
 reflection_cache_service = ReflectionCacheService()
 
