@@ -130,9 +130,11 @@ class LLMService:
                         "content": prompt
                     }
                 ],
-                "temperature": temperature,
                 "max_completion_tokens": max_tokens,
             }
+            # Some models only support the default temperature (1). Omit when not 1 so the API uses default.
+            if temperature is not None and abs(temperature - 1.0) < 0.001:
+                payload["temperature"] = 1.0
             
             async with httpx.AsyncClient(timeout=30.0) as client:
                 try:
