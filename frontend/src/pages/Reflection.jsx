@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { reflectionsAPI } from '../services/api';
@@ -343,7 +343,7 @@ const AlignmentSlider = ({ value, onChange }) => (
   </div>
 );
 
-const ReflectionQuestionInput = ({ question, value, onChange, placeholder }) => (
+const ReflectionQuestionInput = React.memo(({ question, value, onChange, placeholder }) => (
   <div style={{ marginBottom: 16 }}>
     <p style={{ fontFamily: fonts.body, fontSize: 13, fontWeight: 500, color: colors.text, margin: '0 0 8px 0' }}>
       {question}
@@ -371,9 +371,9 @@ const ReflectionQuestionInput = ({ question, value, onChange, placeholder }) => 
       }}
     />
   </div>
-);
+));
 
-const ExperimentOption = ({ selected, onClick, emoji, title, currentLabel, currentValue, suggestionLabel, text, onTextChange, why }) => (
+const ExperimentOption = React.memo(({ selected, onClick, emoji, title, currentLabel, currentValue, suggestionLabel, text, optionId, onTextChange, why }) => (
   <div
     onClick={() => onClick()}
     style={{
@@ -424,7 +424,7 @@ const ExperimentOption = ({ selected, onClick, emoji, title, currentLabel, curre
           <p style={{ fontFamily: fonts.body, fontSize: 11, fontWeight: 600, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 8px 0' }}>{suggestionLabel}</p>
           <textarea
             value={text}
-            onChange={(e) => onTextChange(e.target.value)}
+            onChange={(e) => onTextChange(optionId, e.target.value)}
             style={{
               width: '100%',
               padding: '12px 14px',
@@ -450,7 +450,7 @@ const ExperimentOption = ({ selected, onClick, emoji, title, currentLabel, curre
       </div>
     )}
   </div>
-);
+));
 
 const KeepSameOption = ({ selected, onClick }) => (
   <div
@@ -683,6 +683,13 @@ export default function Reflection() {
     );
   }
 
+  const onReflectionQ1Change = useCallback((val) => setReflectionQ1(val), []);
+  const onReflectionQ2Change = useCallback((val) => setReflectionQ2(val), []);
+  const onIdentityReflectionChange = useCallback((e) => setIdentityReflection(e.target.value), []);
+  const handleExperimentTextChange = useCallback((optionId, text) => {
+    setExperimentTexts((prev) => ({ ...prev, [optionId]: text }));
+  }, []);
+
   const getExperimentText = (id) => {
     if (experimentTexts[id] !== undefined) return experimentTexts[id];
     const option = experimentOptions.find(o => o.id === id);
@@ -752,13 +759,13 @@ export default function Reflection() {
         <ReflectionQuestionInput
           question={reflectionQuestion1}
           value={reflectionQ1}
-          onChange={setReflectionQ1}
+          onChange={onReflectionQ1Change}
           placeholder="Maybe it was the music, a friend, or just starting small..."
         />
         <ReflectionQuestionInput
           question={reflectionQuestion2}
           value={reflectionQ2}
-          onChange={setReflectionQ2}
+          onChange={onReflectionQ2Change}
           placeholder="Was it energy, time, mental load, or something else..."
         />
       </div>
@@ -789,7 +796,7 @@ export default function Reflection() {
         </p>
         <textarea
           value={identityReflection}
-          onChange={(e) => setIdentityReflection(e.target.value)}
+          onChange={onIdentityReflectionChange}
           placeholder="Any other reflections on this week..."
           maxLength={280}
           style={{
@@ -840,6 +847,7 @@ export default function Reflection() {
         {experimentOptions.map((option) => (
           <ExperimentOption
             key={option.id}
+            optionId={option.id}
             selected={selectedExperiment === option.id}
             onClick={() => handleExperimentSelect(option.id)}
             emoji={option.emoji}
@@ -848,7 +856,7 @@ export default function Reflection() {
             currentValue={option.currentValue}
             suggestionLabel={option.suggestionLabel}
             text={getExperimentText(option.id)}
-            onTextChange={(text) => setExperimentTexts(prev => ({ ...prev, [option.id]: text }))}
+            onTextChange={handleExperimentTextChange}
             why={option.why}
           />
         ))}
