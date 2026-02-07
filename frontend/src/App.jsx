@@ -4,9 +4,11 @@ import { useAuth } from './contexts/AuthContext'
 import { setApiTokenGetter, setOnUnauthorized } from './services/api'
 import Onboarding from './pages/Onboarding'
 import Home from './pages/Home'
+import About from './pages/About'
 import { LoginGate } from './components/LoginGate'
 import { CheckInRouteGuard } from './components/CheckInRouteGuard'
 import { ReflectionRouteGuard } from './components/ReflectionRouteGuard'
+import { AppFooter } from './components/AppFooter'
 import { colors, fonts } from './constants/designTokens'
 import './App.css'
 
@@ -53,26 +55,37 @@ function App() {
 
   if (isFirebaseConfigured && !user) {
     return (
-      <LoginGate
-        onSignIn={async () => {
-          await signInWithGoogle()
-          // No navigate: when onAuthStateChanged sets user, we re-render and show the app
-        }}
-      />
+      <div className="App" style={{ minHeight: '100vh', background: colors.background }}>
+        <Routes>
+          <Route path="/about" element={<About />} />
+          <Route path="/" element={<LoginGate onSignIn={async () => { await signInWithGoogle() }} />} />
+          <Route path="*" element={<LoginGate onSignIn={async () => { await signInWithGoogle() }} />} />
+        </Routes>
+      </div>
     )
   }
 
   return (
-    <div className="App" style={{ minHeight: '100vh', background: colors.background }}>
-      <div style={{ paddingTop: 24 }}>
+    <div
+      className="App"
+      style={{
+        minHeight: '100vh',
+        background: colors.background,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <div style={{ paddingTop: 24, flex: 1 }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/about" element={<About />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/checkin" element={<CheckInRouteGuard />} />
           <Route path="/reflect" element={<ReflectionRouteGuard />} />
         </Routes>
       </div>
+      <AppFooter />
     </div>
   )
 }

@@ -20,6 +20,7 @@ from app.database import connect_to_mongo, close_mongo_connection
 from app.core.config import get_cors_origins, is_firebase_configured, settings
 from app.core.firebase import init_firebase
 from app.routers import habits, streaks, reflections, admin
+from app.utils.opik_prompts import register_all_prompts
 
 
 @asynccontextmanager
@@ -42,6 +43,12 @@ async def lifespan(app: FastAPI):
             init_firebase()
         except Exception as e:
             logger.warning(f"Firebase init failed (auth will be skipped): {e}")
+
+    # Register prompt templates with Comet Opik project (when OPIK_ENABLED=true)
+    try:
+        register_all_prompts()
+    except Exception as e:
+        logger.warning("Opik prompt registration failed (non-fatal): %s", e)
 
     yield
     

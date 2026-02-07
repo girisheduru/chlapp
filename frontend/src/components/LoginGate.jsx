@@ -76,12 +76,26 @@ export function LoginGate({ onSignIn }) {
             fontFamily: fonts.body,
             fontSize: 15,
             color: colors.textMuted,
-            margin: '0 0 28px 0',
+            margin: '0 0 20px 0',
             lineHeight: 1.5,
           }}
         >
           Sign in to view your habits, add new ones, and check in.
         </p>
+        <Link
+          to="/about"
+          style={{
+            display: 'block',
+            fontFamily: fonts.body,
+            fontSize: 14,
+            color: colors.primary,
+            marginBottom: 28,
+            textDecoration: 'none',
+            fontWeight: 500,
+          }}
+        >
+          Learn how it works →
+        </Link>
         <button
           type="button"
           onClick={onSignIn}

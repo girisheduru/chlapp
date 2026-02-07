@@ -154,6 +154,8 @@ LLM_MAX_TOKENS=1000
 # TAVILY_API_KEY=your_tavily_key
 
 # Opik (optional - LLM observability and tracing)
+# Get your API key from https://www.comet.com/opik
+# When OPIK_ENABLED=true, prompt templates are registered with your Comet project at startup.
 # OPIK_API_KEY=your_opik_key
 # OPIK_WORKSPACE=your-workspace-name
 OPIK_PROJECT_NAME=2026 Hackathon Opik
