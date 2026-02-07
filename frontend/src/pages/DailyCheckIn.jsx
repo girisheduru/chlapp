@@ -4,7 +4,7 @@ import { colors, fonts } from '../constants/designTokens';
 import { animations } from '../constants/animations';
 import { obstacleOptions, helperOptions, defaultUserData } from '../data/checkinData';
 import { Button, Card, ActionOption, SelectChip, StoneJar, TodaysStone, Confetti, StreakDisplay, UserMenu } from '../components';
-import { streaksAPI } from '../services/api';
+import { streaksAPI, habitsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { getOrCreateUserAndHabitIds } from '../utils/userStorage';
 
@@ -43,6 +43,9 @@ const DailyCheckIn = () => {
       ? location.state.identity
       : defaultUserData.identity;
 
+  // Habit plan taglines: from habit tile state when present, else from fetched habit, else defaults
+  const [habitPlanTaglines, setHabitPlanTaglines] = useState({ baselineHabit: null, capacityHabit: null });
+
   // Check-in state
   const [selectedAction, setSelectedAction] = useState(null); // 'baseline', 'capacity', 'other', 'nottoday'
   const [somethingElseText, setSomethingElseText] = useState('');
@@ -52,9 +55,6 @@ const DailyCheckIn = () => {
   const [helperTellMore, setHelperTellMore] = useState('');
   const [customObstacle, setCustomObstacle] = useState('');
   const [customHelper, setCustomHelper] = useState('');
-
-  // User's data (from onboarding)
-  const userData = defaultUserData;
 
   // Load streak data on component mount
   useEffect(() => {
@@ -82,6 +82,41 @@ const DailyCheckIn = () => {
 
     loadStreakData();
   }, [userId, habitId]);
+
+  // When not from habit tile, fetch habit plan so we can show Nucleus/Supernova taglines
+  useEffect(() => {
+    if (!userId || !habitId || (location.state?.fromHabitTile && location.state?.baselineHabit != null)) {
+      if (location.state?.fromHabitTile && location.state?.baselineHabit != null) {
+        setHabitPlanTaglines({ baselineHabit: null, capacityHabit: null });
+      }
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const habit = await habitsAPI.getUserHabitById(userId, habitId);
+        if (cancelled || !habit) return;
+        const p = habit?.preferences ?? {};
+        setHabitPlanTaglines({
+          baselineHabit: p.starter_habit ?? null,
+          capacityHabit: p.full_habit ?? null,
+        });
+      } catch (err) {
+        console.error('Error loading habit plan for check-in taglines:', err);
+        if (!cancelled) setHabitPlanTaglines({ baselineHabit: null, capacityHabit: null });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId, habitId, location.state?.fromHabitTile, location.state?.baselineHabit]);
+
+  const displayBaselineHabit =
+    (location.state?.fromHabitTile && location.state?.baselineHabit) != null && location.state?.baselineHabit !== ''
+      ? location.state.baselineHabit
+      : (habitPlanTaglines.baselineHabit ?? defaultUserData.baselineHabit);
+  const displayCapacityHabit =
+    (location.state?.fromHabitTile && location.state?.capacityHabit) != null && location.state?.capacityHabit !== ''
+      ? location.state.capacityHabit
+      : (habitPlanTaglines.capacityHabit ?? defaultUserData.capacityHabit);
 
   // Toggle multi-select (max 3)
   const toggleObstacle = (id) => {
@@ -299,14 +334,14 @@ const DailyCheckIn = () => {
               onClick={() => setSelectedAction('baseline')}
               emoji="🌱"
               title="Nucleus habit"
-              subtitle={userData.baselineHabit}
+              subtitle={displayBaselineHabit}
             />
             <ActionOption
               selected={selectedAction === 'capacity'}
               onClick={() => setSelectedAction('capacity')}
               emoji="⚡"
               title="Supernova habit"
-              subtitle={userData.capacityHabit}
+              subtitle={displayCapacityHabit}
             />
             <ActionOption
               selected={selectedAction === 'other'}
@@ -887,41 +922,6 @@ const DailyCheckIn = () => {
             </span>
           </Link>
           <UserMenu />
-        </div>
-
-        {/* Demo Controls */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
-          {[
-            { id: 'checkin', label: '☀️ Check-in' },
-            { id: 'completed', label: '🎉 Done' },
-            { id: 'progress', label: '🏺 Progress' },
-            { id: 'recovery', label: '🌤️ Recovery' },
-          ].map((view) => (
-            <button
-              key={view.id}
-              onClick={() => {
-                resetCheckin();
-                setCurrentView(view.id);
-                if (view.id === 'completed') {
-                  setNewStoneAdded(true);
-                  setShowConfetti(true);
-                  setTimeout(() => setShowConfetti(false), 3000);
-                }
-              }}
-              style={{
-                padding: '6px 12px',
-                borderRadius: 16,
-                border: currentView === view.id ? `2px solid ${colors.primaryLight}` : `1px solid ${colors.borderLight}`,
-                background: currentView === view.id ? 'rgba(74, 124, 89, 0.1)' : 'transparent',
-                fontFamily: fonts.body,
-                fontSize: 12,
-                color: currentView === view.id ? colors.primary : colors.textLight,
-                cursor: 'pointer',
-              }}
-            >
-              {view.label}
-            </button>
-          ))}
         </div>
 
         <div style={{ animation: 'fadeIn 0.4s ease' }}>

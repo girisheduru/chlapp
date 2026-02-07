@@ -47,6 +47,8 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
         habitId: habit.id,
         userId: habit.userId,
         identity: habit.identity,
+        baselineHabit: habit.baselineHabit,
+        capacityHabit: habit.capacityHabit,
       },
     });
   };
