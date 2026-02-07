@@ -148,9 +148,13 @@ class LLMService:
                     
                     # Extract the generated text
                     if "choices" in data and len(data["choices"]) > 0:
-                        generated_text = data["choices"][0]["message"]["content"].strip()
+                        content = data["choices"][0]["message"].get("content")
+                        generated_text = (content or "").strip()
                         print(f"[LLM] API returned success response_len={len(generated_text)}")
                         logger.info(f"LLM API success response_length={len(generated_text)}")
+                        if not generated_text:
+                            logger.warning("LLM API returned empty content")
+                            raise ValueError("LLM API returned empty response")
                         return generated_text
                     else:
                         logger.error("Unexpected response format from LLM API - no choices in response")
@@ -235,6 +239,9 @@ class LLMService:
                 max_tokens=max_tokens or 2048,
             )
             text = raw.strip()
+            if not text:
+                logger.warning("LLM returned empty response; cannot parse as JSON")
+                raise ValueError("LLM returned empty response; cannot parse as JSON")
             if text.startswith("```"):
                 lines = text.split("\n")
                 if lines[0].startswith("```"):
