@@ -517,12 +517,16 @@ export default function Reflection() {
   const [apiReflectionData, setApiReflectionData] = useState(null);
 
   const habitId = habit?.id ?? null;
+
+  // Load LLM-generated reflection items and previously saved answers in parallel
   useEffect(() => {
     if (!habitId) return;
     let cancelled = false;
     setReflectionItemsLoading(true);
     setReflectionItemsError(null);
-    reflectionsAPI
+
+    // Fetch LLM reflection items
+    const fetchItems = reflectionsAPI
       .getReflectionItems(habitId)
       .then((data) => {
         if (!cancelled && data) setApiReflectionData(data);
@@ -536,6 +540,27 @@ export default function Reflection() {
       .finally(() => {
         if (!cancelled) setReflectionItemsLoading(false);
       });
+
+    // Fetch previously saved reflection answers (if from current week)
+    const fetchSaved = reflectionsAPI
+      .getLatestReflectionAnswers(habitId)
+      .then((saved) => {
+        if (!cancelled && saved) {
+          // Only restore if the saved reflection is from the current week
+          const isCurrentWeek = saved.weekRange && weekData?.weekRange && saved.weekRange === weekData.weekRange;
+          if (isCurrentWeek) {
+            if (saved.reflectionQ1) setReflectionQ1(saved.reflectionQ1);
+            if (saved.reflectionQ2) setReflectionQ2(saved.reflectionQ2);
+            if (saved.identityAlignmentValue != null) setAlignmentValue(saved.identityAlignmentValue);
+            if (saved.identityReflection) setIdentityReflection(saved.identityReflection);
+            if (saved.selectedExperiment) setSelectedExperiment(saved.selectedExperiment);
+            if (saved.experimentText && saved.selectedExperiment && saved.selectedExperiment !== 'maintain') {
+              setExperimentTexts((prev) => ({ ...prev, [saved.selectedExperiment]: saved.experimentText }));
+            }
+          }
+        }
+      });
+
     return () => { cancelled = true; };
   }, [habitId]);
 
@@ -668,7 +693,7 @@ export default function Reflection() {
   };
 
   // ----- Screen 1: What we noticed -----
-  const Screen1 = () => (
+  const screen1 = (
     <Card>
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <div style={{
@@ -788,7 +813,7 @@ export default function Reflection() {
   );
 
   // ----- Screen 2: Your personal habit lab -----
-  const Screen2 = () => (
+  const screen2 = (
     <Card>
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
         <div style={{
@@ -832,6 +857,33 @@ export default function Reflection() {
     </Card>
   );
 
+  // ----- Save reflection answers -----
+  const [saving, setSaving] = useState(false);
+
+  const handleStartMyWeek = async () => {
+    setSaving(true);
+    try {
+      await reflectionsAPI.saveReflectionAnswers({
+        habitId: habitId,
+        reflectionQ1: reflectionQ1 || null,
+        reflectionQ2: reflectionQ2 || null,
+        identityAlignmentValue: alignmentValue,
+        identityReflection: identityReflection || null,
+        selectedExperiment: selectedExperiment,
+        experimentText: selectedExperiment && selectedExperiment !== 'maintain'
+          ? getExperimentText(selectedExperiment)
+          : null,
+        weekRange: weekData.weekRange || null,
+      });
+    } catch (err) {
+      console.error('Failed to save reflection answers:', err);
+      // Still navigate home even if save fails
+    } finally {
+      setSaving(false);
+      navigate('/', { replace: true });
+    }
+  };
+
   // ----- Screen 3: Your week ahead -----
   const getSelectedExperimentText = () => {
     if (selectedExperiment === 'maintain') return 'Continue with your current setup and observe what happens.';
@@ -850,7 +902,7 @@ export default function Reflection() {
     return option ? option.emoji : '🧪';
   };
 
-  const Screen3 = () => (
+  const screen3 = (
     <Card>
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <div style={{
@@ -901,18 +953,20 @@ export default function Reflection() {
         </p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <Button style={{ width: '100%' }} onClick={() => navigate('/', { replace: true })}>Start my week →</Button>
-        <Button variant="ghost" onClick={() => setCurrentScreen(2)} style={{ width: '100%' }}>← Change experiment</Button>
+        <Button style={{ width: '100%' }} onClick={handleStartMyWeek} disabled={saving}>
+          {saving ? 'Saving...' : 'Start my week →'}
+        </Button>
+        <Button variant="ghost" onClick={() => setCurrentScreen(2)} style={{ width: '100%' }} disabled={saving}>← Change experiment</Button>
       </div>
     </Card>
   );
 
   const renderScreen = () => {
     switch (currentScreen) {
-      case 1: return <Screen1 />;
-      case 2: return <Screen2 />;
-      case 3: return <Screen3 />;
-      default: return <Screen1 />;
+      case 1: return screen1;
+      case 2: return screen2;
+      case 3: return screen3;
+      default: return screen1;
     }
   };
 

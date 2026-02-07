@@ -192,6 +192,12 @@ export const reflectionsAPI = {
   /** Prefetch reflection items for all user habits (triggers background generation). */
   prefetchReflections: () =>
     apiRequest('/prefetchReflections', { method: 'POST' }),
+  /** Save reflection answers (Q1/Q2, identity alignment, experiment) and update habit preferences. */
+  saveReflectionAnswers: (data) =>
+    apiRequest('/saveReflectionAnswers', { method: 'POST', body: data }),
+  /** Get latest saved reflection answers for a habit. Returns null if none found. */
+  getLatestReflectionAnswers: (habitId) =>
+    apiRequest(`/getLatestReflectionAnswers?habitId=${encodeURIComponent(habitId)}`).catch(() => null),
 };
 
 /**

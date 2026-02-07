@@ -173,20 +173,18 @@ const DailyCheckIn = () => {
   // =========================================
   // MAIN CHECK-IN VIEW
   // =========================================
-  const CheckInView = () => {
-    const timeGreeting = () => {
-      const hour = new Date().getHours();
-      if (hour < 12) return { text: 'Good morning', emoji: '☀️' };
-      if (hour < 17) return { text: 'Good afternoon', emoji: '🌤️' };
-      return { text: 'Good evening', emoji: '🌙' };
-    };
-    const greeting = timeGreeting();
+  const greeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return { text: 'Good morning', emoji: '☀️' };
+    if (hour < 17) return { text: 'Good afternoon', emoji: '🌤️' };
+    return { text: 'Good evening', emoji: '🌙' };
+  })();
 
-    const showReflectionSections = selectedAction !== null;
-    const showHelpersSection = selectedAction && selectedAction !== 'nottoday';
-    const canSave = selectedAction !== null && (selectedAction !== 'other' || somethingElseText.trim());
+  const showReflectionSections = selectedAction !== null;
+  const showHelpersSection = selectedAction && selectedAction !== 'nottoday';
+  const canSave = selectedAction !== null && (selectedAction !== 'other' || somethingElseText.trim());
 
-    return (
+  const checkInView = (
       <Card>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
@@ -586,21 +584,19 @@ const DailyCheckIn = () => {
           </Button>
         </div>
       </Card>
-    );
-  };
+  );
 
   // =========================================
   // COMPLETED VIEW (Stone Collected)
   // =========================================
-  const CompletedView = () => {
-    const celebrations = [
-      { emoji: '🎉', message: 'Stone collected!' },
-      { emoji: '💎', message: 'Another one for the jar!' },
-      { emoji: '⭐', message: 'You showed up!' },
-    ];
-    const randomCelebration = celebrations[Math.floor(Math.random() * celebrations.length)];
+  const celebrations = [
+    { emoji: '🎉', message: 'Stone collected!' },
+    { emoji: '💎', message: 'Another one for the jar!' },
+    { emoji: '⭐', message: 'You showed up!' },
+  ];
+  const randomCelebration = celebrations[Math.floor(Math.random() * celebrations.length)];
 
-    return (
+  const completedView = (
       <Card glow={true}>
         {showConfetti && <Confetti />}
 
@@ -688,13 +684,12 @@ const DailyCheckIn = () => {
           </Button>
         </div>
       </Card>
-    );
-  };
+  );
 
   // =========================================
   // PROGRESS VIEW (Jar Collection)
   // =========================================
-  const ProgressView = () => (
+  const progressView = (
     <Card>
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <h1 style={{
@@ -753,7 +748,7 @@ const DailyCheckIn = () => {
   // =========================================
   // RECOVERY VIEW (Not Today)
   // =========================================
-  const RecoveryView = () => (
+  const recoveryView = (
     <Card>
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <div style={{
@@ -850,11 +845,11 @@ const DailyCheckIn = () => {
   // =========================================
   const renderView = () => {
     switch (currentView) {
-      case 'checkin': return <CheckInView />;
-      case 'completed': return <CompletedView />;
-      case 'progress': return <ProgressView />;
-      case 'recovery': return <RecoveryView />;
-      default: return <CheckInView />;
+      case 'checkin': return checkInView;
+      case 'completed': return completedView;
+      case 'progress': return progressView;
+      case 'recovery': return recoveryView;
+      default: return checkInView;
     }
   };
 

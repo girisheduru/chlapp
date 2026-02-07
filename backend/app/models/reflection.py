@@ -85,3 +85,39 @@ class ReflectionItemsResponse(BaseModel):
         default_factory=list,
         description="Exactly 3 suggestions: anchor, environment, enjoyment",
     )
+
+
+# ----- Save reflection answers -----
+
+
+class ReflectionAnswerCreate(BaseModel):
+    """Request model for saving reflection answers from the reflection flow."""
+
+    habitId: str = Field(..., description="Habit ID")
+    reflectionQ1: Optional[str] = Field(None, description="Answer to reflection question 1")
+    reflectionQ2: Optional[str] = Field(None, description="Answer to reflection question 2")
+    identityAlignmentValue: Optional[int] = Field(None, ge=0, le=100, description="Identity alignment slider value (0-100)")
+    identityReflection: Optional[str] = Field(None, description="Free-text identity reflection")
+    selectedExperiment: Optional[str] = Field(None, description="Selected experiment type (anchor/environment/enjoyment/maintain)")
+    experimentText: Optional[str] = Field(None, description="User-edited experiment text")
+    weekRange: Optional[str] = Field(None, description="Week range string (e.g. 'Jan 27 – Feb 2')")
+
+
+class ReflectionAnswerResponse(BaseModel):
+    """Response model for saved reflection answers."""
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+    )
+
+    id: str = Field(..., alias="_id")
+    userId: str
+    habitId: str
+    reflectionQ1: Optional[str] = None
+    reflectionQ2: Optional[str] = None
+    identityAlignmentValue: Optional[int] = None
+    identityReflection: Optional[str] = None
+    selectedExperiment: Optional[str] = None
+    experimentText: Optional[str] = None
+    weekRange: Optional[str] = None
+    createdAt: Optional[str] = None

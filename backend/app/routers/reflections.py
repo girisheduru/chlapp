@@ -7,12 +7,15 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.database import get_database
+from datetime import datetime, timezone
 from app.models.reflection import (
     ReflectionInputResponse,
     ReflectionItemsResponse,
     InsightItem,
     ReflectionQuestions,
     ExperimentSuggestion,
+    ReflectionAnswerCreate,
+    ReflectionAnswerResponse,
 )
 from app.services.llm_service import llm_service
 from app.services.habit_service import habit_service
@@ -254,4 +257,129 @@ async def prefetch_reflections(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error prefetching reflections: {str(e)}",
+        )
+
+
+@router.post(
+    "/saveReflectionAnswers",
+    response_model=ReflectionAnswerResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Save reflection answers and update habit experiment",
+    description="Save user's reflection answers and update habit preferences if an experiment was selected.",
+)
+async def save_reflection_answers(
+    data: ReflectionAnswerCreate,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Save reflection flow answers (Q1/Q2, identity alignment, experiment choice).
+    Also updates the habit's preferences if user chose a new experiment (anchor/environment/enjoyment).
+    """
+    uid = current_user.uid
+    try:
+        logger.info(f"POST /saveReflectionAnswers - userId: {uid}, habitId: {data.habitId}")
+
+        now = datetime.now(timezone.utc)
+
+        # 1. Save reflection answers to reflections collection
+        reflection_doc = {
+            "userId": uid,
+            "habitId": data.habitId,
+            "reflectionQ1": data.reflectionQ1,
+            "reflectionQ2": data.reflectionQ2,
+            "identityAlignmentValue": data.identityAlignmentValue,
+            "identityReflection": data.identityReflection,
+            "selectedExperiment": data.selectedExperiment,
+            "experimentText": data.experimentText,
+            "weekRange": data.weekRange,
+            "createdAt": now.isoformat(),
+        }
+
+        result = await db.reflections.insert_one(reflection_doc)
+        reflection_doc["_id"] = str(result.inserted_id)
+        logger.info(f"Saved reflection answers - _id: {reflection_doc['_id']}")
+
+        # 2. Update habit preferences if an experiment was selected (not 'maintain')
+        if data.selectedExperiment and data.selectedExperiment != "maintain" and data.experimentText:
+            # Map experiment type to habit preference field
+            field_map = {
+                "anchor": "preferences.habit_stack",
+                "environment": "preferences.habit_environment",
+                "enjoyment": "preferences.enjoyment",
+            }
+            pref_field = field_map.get(data.selectedExperiment)
+            if pref_field:
+                update_result = await db.habits.update_one(
+                    {"userId": uid, "habitId": data.habitId},
+                    {
+                        "$set": {
+                            pref_field: data.experimentText,
+                            "updated_at": now,
+                        }
+                    },
+                )
+                if update_result.modified_count > 0:
+                    logger.info(
+                        f"Updated habit preference '{pref_field}' for user={uid}, habit={data.habitId}"
+                    )
+                else:
+                    logger.warning(
+                        f"Habit preference update matched {update_result.matched_count} docs, "
+                        f"modified {update_result.modified_count} for user={uid}, habit={data.habitId}"
+                    )
+
+        return ReflectionAnswerResponse(**reflection_doc)
+
+    except Exception as e:
+        logger.error(f"Error saving reflection answers: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error saving reflection answers: {str(e)}",
+        )
+
+
+@router.get(
+    "/getLatestReflectionAnswers",
+    response_model=ReflectionAnswerResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get latest saved reflection answers for a habit",
+    description="Retrieve the most recent reflection answers for the given habit.",
+)
+async def get_latest_reflection_answers(
+    habitId: str,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Get the most recently saved reflection answers for a habit.
+    Returns 404 if no previous reflection exists.
+    """
+    uid = current_user.uid
+    try:
+        logger.info(f"GET /getLatestReflectionAnswers - userId: {uid}, habitId: {habitId}")
+
+        doc = await db.reflections.find_one(
+            {"userId": uid, "habitId": habitId},
+            sort=[("createdAt", -1)],
+        )
+
+        if not doc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No reflection answers found for habitId={habitId}",
+            )
+
+        doc["_id"] = str(doc["_id"])
+        return ReflectionAnswerResponse(**doc)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting reflection answers: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting reflection answers: {str(e)}",
         )
