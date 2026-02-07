@@ -1373,7 +1373,7 @@ const WeeklyReflectionMockupsV4 = () => {
               🌱
             </div>
             <span style={{ fontFamily: fonts.heading, fontSize: 17, fontWeight: 600, color: colors.primary }}>
-              Atomic
+              Habit Lab
             </span>
           </div>
           

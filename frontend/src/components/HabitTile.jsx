@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { colors, fonts } from '../constants/designTokens';
@@ -29,6 +29,7 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
   const [editOptionsLoading, setEditOptionsLoading] = useState(false);
   const [editOptions, setEditOptions] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [planEditMode, setPlanEditMode] = useState(false);
   const isCheckedToday = habit.lastCheckIn?.done ?? false;
 
   const formatFunElements = () => {
@@ -167,6 +168,7 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
         preferences: buildFullPreferences(),
       });
       setEditedPreferences({});
+      setPlanEditMode(false);
       onHabitUpdated?.();
     } catch (err) {
       console.error('Failed to save habit preferences:', err);
@@ -174,6 +176,15 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
       setSaving(false);
     }
   }, [habit.userId, habit.id, buildFullPreferences, editedPreferences, onHabitUpdated]);
+
+  const cancelPlanEdit = useCallback(() => {
+    setPlanEditMode(false);
+    setEditedPreferences({});
+  }, []);
+
+  useEffect(() => {
+    if (!isExpanded) setPlanEditMode(false);
+  }, [isExpanded]);
 
   const deleteConfirmModal = showDeleteConfirm && (
     <div
@@ -499,19 +510,40 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
             background: colors.background,
           }}
         >
-          <p
-            style={{
-              fontFamily: fonts.body,
-              fontSize: 11,
-              fontWeight: 600,
-              color: colors.textMuted,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-              margin: '0 0 14px 0',
-            }}
-          >
-            Your Habit Plan
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <p
+              style={{
+                fontFamily: fonts.body,
+                fontSize: 11,
+                fontWeight: 600,
+                color: colors.textMuted,
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+                margin: 0,
+              }}
+            >
+              Your Habit Plan
+            </p>
+            {!planEditMode && (
+              <button
+                type="button"
+                onClick={() => setPlanEditMode(true)}
+                style={{
+                  padding: '4px 10px',
+                  border: 'none',
+                  background: 'transparent',
+                  color: colors.primary,
+                  fontFamily: fonts.body,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  borderRadius: 6,
+                }}
+              >
+                Edit plan
+              </button>
+            )}
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {HABIT_PLAN_ROWS.map((row) => (
               <div key={row.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -523,32 +555,39 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
                     bg={row.bg}
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); openEditModal(row.key); }}
-                  aria-label={`Edit ${row.label}`}
-                  style={{
-                    padding: 6,
-                    border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    borderRadius: 8,
-                    color: colors.textMuted,
-                    fontSize: 16,
-                    flexShrink: 0,
-                  }}
-                >
-                  ✏️
-                </button>
+                {planEditMode && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); openEditModal(row.key); }}
+                    aria-label={`Edit ${row.label}`}
+                    style={{
+                      padding: 6,
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      borderRadius: 8,
+                      color: colors.textMuted,
+                      fontSize: 16,
+                      flexShrink: 0,
+                    }}
+                  >
+                    ✏️
+                  </button>
+                )}
               </div>
             ))}
             <div style={{ height: 1, background: colors.border }} />
             <SummaryRow icon="⏰" label="Check-in time" value={habit.checkInTime ?? '—'} bg="#E0F7FA" />
           </div>
-          {Object.keys(editedPreferences).length > 0 && (
-            <Button onClick={handleSaveChanges} disabled={saving} style={{ width: '100%', marginTop: 12 }}>
-              {saving ? 'Saving…' : 'Save changes'}
-            </Button>
+          {planEditMode && (
+            <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+              <Button variant="ghost" onClick={cancelPlanEdit} style={{ flex: 1 }}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveChanges} disabled={saving || Object.keys(editedPreferences).length === 0} style={{ flex: 1 }}>
+                {saving ? 'Saving…' : 'Save changes'}
+              </Button>
+            </div>
           )}
         </div>
       )}

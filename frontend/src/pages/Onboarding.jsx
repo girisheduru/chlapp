@@ -1387,7 +1387,7 @@ const Onboarding = () => {
             >
               🌱
             </div>
-            <span style={{ fontFamily: fonts.heading, fontSize: 17, fontWeight: 600, color: colors.primary }}>Atomic</span>
+            <span style={{ fontFamily: fonts.heading, fontSize: 17, fontWeight: 600, color: colors.primary }}>Habit Lab</span>
           </Link>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

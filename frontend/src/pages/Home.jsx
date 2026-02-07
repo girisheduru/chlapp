@@ -250,7 +250,7 @@ export default function Home() {
               🌱
             </div>
             <span style={{ fontFamily: fonts.heading, fontSize: 19, fontWeight: 600, color: colors.primary }}>
-              Atomic
+              Habit Lab
             </span>
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

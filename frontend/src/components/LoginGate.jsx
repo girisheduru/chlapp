@@ -68,7 +68,7 @@ export function LoginGate({ onSignIn }) {
               margin: '0 0 8px 0',
             }}
           >
-            Atomic
+            Habit Lab
           </h1>
         </Link>
         <p

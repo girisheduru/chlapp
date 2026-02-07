@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 
-// Atomic Habits - Home Screen V8
+// Habit Lab - Home Screen V8
 // Updates:
 // - Mini stone jar icon in header (matches tile jars)
 
@@ -704,7 +704,7 @@ const HomeScreenV8 = () => {
               fontWeight: 600, 
               color: colors.primary 
             }}>
-              Atomic
+              Habit Lab
             </span>
           </div>
 
