@@ -97,13 +97,13 @@ flowchart TB
 ```mermaid
 flowchart LR
   subgraph UserDevice["User's device"]
-    App[Clear Habit Lab app]
+    App["Clear Habit Lab app<br/>(deployed on Vercel)"]
   end
 
   subgraph OurSystems["Our systems"]
-    API[API server]
-    DB[(Habits & streaks data)]
-    AI[AI / LLM]
+    API["API server<br/>(FastAPI, Python · Railway)"]
+    DB[(MongoDB<br/>Habits & streaks data)]
+    AI[OpenAI models]
   end
 
   App <-->|"Save & load habits, check-ins, reflections"| API
@@ -118,10 +118,10 @@ flowchart LR
   style AI fill:#FFF9E6,stroke:#E8E4DF,color:#3D3229
 ```
 
-- **App:** What the user sees and taps (dashboard, onboarding, check-in, reflection).
-- **API:** Receives and sends habits, check-ins, streaks, and reflection requests.
-- **Database:** Stores habits, preferences, check-in history, and streaks.
-- **AI:** Used to generate identity/habit/cue options in onboarding, and insights + experiments in reflection (optionally with web search for Atomic Habits content).
+- **App (Vercel):** Frontend — what the user sees and taps (dashboard, onboarding, check-in, reflection). Deployed on Vercel.
+- **API (FastAPI, Python / Railway):** Backend — receives and sends habits, check-ins, streaks, and reflection requests. Built with FastAPI (Python); deployed as a Railway project.
+- **MongoDB:** Database — stores habits, preferences, check-in history, and streaks.
+- **OpenAI models:** Used to generate identity/habit/cue options in onboarding, and insights + experiments in reflection (optionally with web search for Atomic Habits content).
 
 ---
 
