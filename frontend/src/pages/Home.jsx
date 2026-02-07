@@ -365,6 +365,7 @@ export default function Home() {
                 onExpandToggle={setExpandedTile}
                 onHover={setHoveredTile}
                 onDelete={() => loadHabits()}
+                onHabitUpdated={loadHabits}
               />
             </div>
           ))}

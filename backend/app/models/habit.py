@@ -2,8 +2,17 @@
 Pydantic schemas for Habit-related models.
 """
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
+
+PreferenceKey = Literal[
+    "identity",
+    "starter_habit",
+    "full_habit",
+    "habit_stack",
+    "enjoyment",
+    "habit_environment",
+]
 
 
 class HabitPreferences(BaseModel):
@@ -88,3 +97,23 @@ class ObviousCueRequest(BaseModel):
 class ObviousCueResponse(BaseModel):
     """Response model for generated obvious cues."""
     cues: list[str] = Field(..., description="List of generated obvious cues")
+
+
+class PreferenceEditOptionsRequest(BaseModel):
+    """Request model for getting LLM-generated alternatives for editing a preference."""
+    habitId: str = Field(..., description="Habit ID")
+    preferenceKey: PreferenceKey = Field(
+        ...,
+        description="Which preference to suggest alternatives for",
+    )
+    currentValue: Optional[str] = Field(None, description="Current value of the preference")
+    # Optional Screen 1 reflection answers — when provided, options are informed by them
+    reflectionQ1: Optional[str] = Field(None, description="What helped you show up (Screen 1)")
+    reflectionQ2: Optional[str] = Field(None, description="What made starting harder on skip days (Screen 1)")
+    identityReflection: Optional[str] = Field(None, description="Free-text 'I'm noticing that...' (Screen 1)")
+    identityAlignmentValue: Optional[int] = Field(None, ge=0, le=100, description="Slider: how much identity felt aligned this week (0-100)")
+
+
+class PreferenceEditOptionsResponse(BaseModel):
+    """Response model for preference edit options (exactly 3 alternatives)."""
+    options: list[str] = Field(..., description="Exactly 3 alternative phrasings")

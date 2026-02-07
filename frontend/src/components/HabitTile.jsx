@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { colors, fonts } from '../constants/designTokens';
@@ -7,14 +7,28 @@ import { SummaryRow } from './SummaryRow';
 import { Button } from './Button';
 import { habitsAPI } from '../services/api';
 
+const HABIT_PLAN_ROWS = [
+  { key: 'identity', label: 'Identity', icon: '🪪', bg: '#E8F5E9' },
+  { key: 'starter_habit', label: 'Baseline habit', icon: '🎯', bg: '#FFF3CD' },
+  { key: 'full_habit', label: 'When energy allows', icon: '⚡', bg: '#E3F2FD' },
+  { key: 'habit_stack', label: 'Cue', icon: '🔗', bg: '#FCE4EC' },
+  { key: 'enjoyment', label: 'Enjoyment', icon: '🎵', bg: '#FFF9E6' },
+  { key: 'habit_environment', label: 'Environment support', icon: '👁️', bg: '#F3E5F5' },
+];
+
 /**
- * Habit tile for Home screen: identity, baseline, stats (stones, streak, done), Check in / Reflect, expandable plan.
+ * Habit tile for Home screen: identity, baseline, stats (stones, streak, done), Check in / Reflect, expandable plan with edit.
  */
-export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHover, onDelete }) {
+export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHover, onDelete, onHabitUpdated }) {
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [editedPreferences, setEditedPreferences] = useState({});
+  const [editModalPreferenceKey, setEditModalPreferenceKey] = useState(null);
+  const [editOptionsLoading, setEditOptionsLoading] = useState(false);
+  const [editOptions, setEditOptions] = useState([]);
+  const [saving, setSaving] = useState(false);
   const isCheckedToday = habit.lastCheckIn?.done ?? false;
 
   const formatFunElements = () => {
@@ -64,6 +78,102 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
     setShowDeleteConfirm(false);
     setDeleteError(null);
   };
+
+  const getPreferenceDisplayValue = useCallback(
+    (key) => {
+      if (editedPreferences[key] !== undefined && editedPreferences[key] !== '') return editedPreferences[key];
+      switch (key) {
+        case 'identity':
+          return habit.identity ?? '—';
+        case 'starter_habit':
+          return habit.baselineHabit ?? '—';
+        case 'full_habit':
+          return habit.capacityHabit ?? '—';
+        case 'habit_stack':
+          return habit.anchor?.label ?? habit.anchor ?? '—';
+        case 'enjoyment':
+          return Array.isArray(habit.funElements) ? habit.funElements.join(', ') : (habit.funElements ?? '—');
+        case 'habit_environment':
+          return Array.isArray(habit.environmentSetup) ? habit.environmentSetup.join(', ') : (habit.environmentSetup ?? '—');
+        default:
+          return '—';
+      }
+    },
+    [habit, editedPreferences]
+  );
+
+  const openEditModal = useCallback(
+    async (preferenceKey) => {
+      setEditModalPreferenceKey(preferenceKey);
+      const currentVal = getPreferenceDisplayValue(preferenceKey);
+      setEditOptions([]);
+      setEditOptionsLoading(true);
+      try {
+        const res = await habitsAPI.getPreferenceEditOptions(
+          habit.id,
+          preferenceKey,
+          currentVal !== '—' ? currentVal : '',
+          null
+        );
+        setEditOptions(Array.isArray(res?.options) ? res.options : []);
+      } catch (err) {
+        console.error('Failed to load edit options:', err);
+        setEditOptions([]);
+      } finally {
+        setEditOptionsLoading(false);
+      }
+    },
+    [habit.id, getPreferenceDisplayValue]
+  );
+
+  const closeEditModal = useCallback(() => {
+    setEditModalPreferenceKey(null);
+    setEditOptions([]);
+  }, []);
+
+  const applyEditOption = useCallback((preferenceKey, value) => {
+    if (value === null) {
+      setEditedPreferences((prev) => {
+        const next = { ...prev };
+        delete next[preferenceKey];
+        return next;
+      });
+    } else {
+      setEditedPreferences((prev) => ({ ...prev, [preferenceKey]: value }));
+    }
+    closeEditModal();
+  }, [closeEditModal]);
+
+  const buildFullPreferences = useCallback(() => {
+    const base = {
+      starting_idea: habit.name ?? null,
+      identity: habit.identity ?? null,
+      starter_habit: habit.baselineHabit ?? null,
+      full_habit: habit.capacityHabit ?? null,
+      habit_stack: habit.anchor?.label ?? habit.anchor ?? null,
+      enjoyment: Array.isArray(habit.funElements) ? habit.funElements.join(', ') : (habit.funElements ?? null),
+      habit_environment: Array.isArray(habit.environmentSetup) ? habit.environmentSetup.join(', ') : (habit.environmentSetup ?? null),
+    };
+    return { ...base, ...editedPreferences };
+  }, [habit, editedPreferences]);
+
+  const handleSaveChanges = useCallback(async () => {
+    if (Object.keys(editedPreferences).length === 0) return;
+    setSaving(true);
+    try {
+      await habitsAPI.saveUserHabitPreference({
+        userId: habit.userId,
+        habitId: habit.id,
+        preferences: buildFullPreferences(),
+      });
+      setEditedPreferences({});
+      onHabitUpdated?.();
+    } catch (err) {
+      console.error('Failed to save habit preferences:', err);
+    } finally {
+      setSaving(false);
+    }
+  }, [habit.userId, habit.id, buildFullPreferences, editedPreferences, onHabitUpdated]);
 
   const deleteConfirmModal = showDeleteConfirm && (
     <div
@@ -403,26 +513,130 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
             Your Habit Plan
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <SummaryRow icon="🪪" label="Identity" value={`"${habit.identity}"`} bg="#E8F5E9" />
-            <div style={{ height: 1, background: colors.border }} />
-            <SummaryRow icon="🎯" label="Baseline habit" value={habit.baselineHabit} bg="#FFF3CD" />
-            <div style={{ height: 1, background: colors.border }} />
-            <SummaryRow icon="⚡" label="When energy allows" value={habit.capacityHabit} bg="#E3F2FD" />
-            <div style={{ height: 1, background: colors.border }} />
-            <SummaryRow icon="🔗" label="Cue" value={habit.anchor?.label ?? habit.anchor ?? '—'} bg="#FCE4EC" />
-            <div style={{ height: 1, background: colors.border }} />
-            <SummaryRow icon="🎵" label="Enjoyment" value={`With ${formatFunElements() || 'elements you enjoy'}`} bg="#FFF9E6" />
-            <div style={{ height: 1, background: colors.border }} />
-            <SummaryRow
-              icon="👁️"
-              label="Environment support"
-              value={Array.isArray(habit.environmentSetup) ? habit.environmentSetup.join(', ') : habit.environmentSetup ?? '—'}
-              bg="#F3E5F5"
-            />
+            {HABIT_PLAN_ROWS.map((row) => (
+              <div key={row.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <SummaryRow
+                    icon={row.icon}
+                    label={row.label}
+                    value={row.key === 'identity' ? `"${getPreferenceDisplayValue(row.key)}"` : getPreferenceDisplayValue(row.key)}
+                    bg={row.bg}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); openEditModal(row.key); }}
+                  aria-label={`Edit ${row.label}`}
+                  style={{
+                    padding: 6,
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    borderRadius: 8,
+                    color: colors.textMuted,
+                    fontSize: 16,
+                    flexShrink: 0,
+                  }}
+                >
+                  ✏️
+                </button>
+              </div>
+            ))}
             <div style={{ height: 1, background: colors.border }} />
             <SummaryRow icon="⏰" label="Check-in time" value={habit.checkInTime ?? '—'} bg="#E0F7FA" />
           </div>
+          {Object.keys(editedPreferences).length > 0 && (
+            <Button onClick={handleSaveChanges} disabled={saving} style={{ width: '100%', marginTop: 12 }}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </Button>
+          )}
         </div>
+      )}
+      {typeof document !== 'undefined' && editModalPreferenceKey && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-preference-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+            background: 'rgba(0,0,0,0.4)',
+          }}
+          onClick={closeEditModal}
+        >
+          <div
+            style={{
+              background: colors.card,
+              borderRadius: 16,
+              padding: 24,
+              maxWidth: 400,
+              width: '100%',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+              border: `1px solid ${colors.border}`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="edit-preference-title" style={{ fontFamily: fonts.heading, fontSize: 18, fontWeight: 600, color: colors.text, margin: '0 0 16px 0' }}>
+              Edit {HABIT_PLAN_ROWS.find((r) => r.key === editModalPreferenceKey)?.label ?? editModalPreferenceKey}
+            </h2>
+            <p style={{ fontFamily: fonts.body, fontSize: 11, fontWeight: 600, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 6px 0' }}>Current</p>
+            <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.text, margin: '0 0 16px 0', lineHeight: 1.5 }}>{getPreferenceDisplayValue(editModalPreferenceKey)}</p>
+            {editOptionsLoading ? (
+              <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>Loading suggestions...</p>
+            ) : (
+              <>
+                <p style={{ fontFamily: fonts.body, fontSize: 11, fontWeight: 600, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 8px 0' }}>Choose an option</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => applyEditOption(editModalPreferenceKey, null)}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 10,
+                      border: `2px solid ${colors.border}`,
+                      background: colors.card,
+                      fontFamily: fonts.body,
+                      fontSize: 13,
+                      color: colors.text,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Keep current
+                  </button>
+                  {editOptions.map((opt, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => applyEditOption(editModalPreferenceKey, opt)}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: 10,
+                        border: `2px solid ${colors.border}`,
+                        background: colors.background,
+                        fontFamily: fonts.body,
+                        fontSize: 13,
+                        color: colors.text,
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            <Button variant="ghost" onClick={closeEditModal} style={{ width: '100%' }}>Cancel</Button>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

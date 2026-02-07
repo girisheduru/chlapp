@@ -112,9 +112,9 @@ class LLMService:
             temperature = temperature or self.temperature
             max_tokens = max_tokens or self.max_tokens
             
-            logger.debug(
-                f"Calling LLM API - model: {self.model}, temperature: {temperature}, "
-                f"max_tokens: {max_tokens}, prompt_length: {len(prompt)}"
+            print(f"[LLM] Calling API model={self.model} max_tokens={max_tokens} prompt_len={len(prompt)}")
+            logger.info(
+                f"Calling LLM API - model: {self.model}, max_tokens: {max_tokens}, prompt_length: {len(prompt)}"
             )
             
             headers = {
@@ -147,7 +147,8 @@ class LLMService:
                     # Extract the generated text
                     if "choices" in data and len(data["choices"]) > 0:
                         generated_text = data["choices"][0]["message"]["content"].strip()
-                        logger.debug(f"Successfully generated text - length: {len(generated_text)}")
+                        print(f"[LLM] API returned success response_len={len(generated_text)}")
+                        logger.info(f"LLM API success response_length={len(generated_text)}")
                         return generated_text
                     else:
                         logger.error("Unexpected response format from LLM API - no choices in response")
@@ -155,12 +156,14 @@ class LLMService:
                         raise ValueError("Unexpected response format from LLM API")
                         
                 except httpx.HTTPStatusError as e:
+                    print(f"[LLM] HTTP error status={e.response.status_code} body={e.response.text[:200]}")
                     logger.error(
                         f"LLM API HTTP error - status: {e.response.status_code}, "
                         f"response: {e.response.text}"
                     )
                     raise Exception(f"LLM API error: {e.response.status_code} - {e.response.text}")
                 except httpx.TimeoutException as e:
+                    print(f"[LLM] Timeout: {e}")
                     logger.error(f"LLM API timeout error: {str(e)}")
                     raise Exception(f"LLM API timeout: {str(e)}")
                 except Exception as e:

@@ -121,6 +121,84 @@ Return only the cues, one per line, without numbering or bullets."""
     return prompt
 
 
+# Human-readable labels for preference keys (for LLM prompt)
+PREFERENCE_KEY_LABELS = {
+    "identity": "Identity statement (who you're becoming)",
+    "starter_habit": "Baseline habit (minimal showing-up action)",
+    "full_habit": "Full habit / when energy allows",
+    "habit_stack": "Cue or anchor (when/after what)",
+    "enjoyment": "Enjoyment or fun elements",
+    "habit_environment": "Environment support / setup",
+}
+
+
+def get_preference_edit_options_prompt(
+    habit_context: dict,
+    preference_key: str,
+    current_value: str,
+    reflection_context: dict | None = None,
+) -> str:
+    """
+    Generate prompt for 3 alternative phrasings of a single habit preference.
+    Used in Reflection flow when user taps pencil to edit a preference.
+    If reflection_context is provided (Screen 1 answers), options take those into account.
+    """
+    label = PREFERENCE_KEY_LABELS.get(
+        preference_key,
+        preference_key.replace("_", " ").title(),
+    )
+    context_lines = []
+    for k, v in habit_context.items():
+        if v:
+            context_lines.append(f"- {k}: {v}")
+    context_block = "\n".join(context_lines) if context_lines else "(No context yet)"
+
+    reflection_block = ""
+    if reflection_context:
+        parts = []
+        if reflection_context.get("reflectionQ1"):
+            parts.append(f"What helped them show up: \"{reflection_context['reflectionQ1']}\"")
+        if reflection_context.get("reflectionQ2"):
+            parts.append(f"What made starting harder on skip days: \"{reflection_context['reflectionQ2']}\"")
+        if reflection_context.get("identityReflection"):
+            parts.append(f"Other reflection (I'm noticing that...): \"{reflection_context['identityReflection']}\"")
+        if reflection_context.get("identityAlignmentValue") is not None:
+            val = reflection_context["identityAlignmentValue"]
+            if val <= 33:
+                alignment_note = "they didn't feel very aligned with their identity this week"
+            elif val <= 66:
+                alignment_note = "they felt somewhat aligned with their identity this week"
+            else:
+                alignment_note = "they felt well aligned with their identity this week"
+            parts.append(f"Identity alignment: {alignment_note} (slider {val}/100)")
+        if parts:
+            reflection_block = "\n\nREFLECTION FROM THIS WEEK (use this to tailor suggestions):\n" + "\n".join(f"- {p}" for p in parts)
+
+    prompt = f"""You are a supportive habit coach. The user is editing one part of their habit plan.
+{reflection_block}
+
+HABIT CONTEXT:
+{context_block}
+
+They are editing: {label}
+Current value: "{current_value or '(empty)'}"
+
+Generate exactly 3 alternative phrasings for this preference. Each alternative should:
+1. Stay true to their overall habit goal and identity
+2. Be specific and actionable
+3. Be a reasonable variation (different wording, slightly different angle, or a small improvement)"""
+
+    if reflection_block:
+        prompt += """
+4. When reflection from this week is provided above, let it inform your suggestions (e.g. address obstacles, build on what helped, or reflect what they noticed)."""
+
+    prompt += """
+
+Return only the 3 alternatives, one per line, without numbering or bullets. No other text."""
+
+    return prompt
+
+
 def get_reflection_items_prompt(habit_context: dict, streak_data: dict) -> str:
     """
     Generate prompt for reflection flow items (Screen 1 & 2) from habit plan + streak.
@@ -259,3 +337,48 @@ STREAK DATA:
 - Last check-in: {last_check_in or "None yet"}
 
 Optional: use the search tool to find James Clear or Atomic Habits quotes/tips that could enrich the insights or experiment suggestions. Then output the required JSON object as your final answer."""
+
+
+def get_reflection_suggestion_prompt(
+    habit_context: dict,
+    reflection_q1: str,
+    reflection_q2: str,
+    identity_reflection: str,
+    identity_alignment_value: int | None,
+) -> str:
+    """
+    Generate prompt for one LLM suggestion based on user's Screen 1 reflection.
+    Kept short to minimize tokens and speed up the API response.
+    """
+    context_lines = [f"{k}: {str(v)[:100]}" for k, v in (habit_context or {}).items() if v]
+    context_block = "\n".join(context_lines) if context_lines else "No habit context"
+
+    reflection_parts = []
+    if (reflection_q1 or "").strip():
+        reflection_parts.append("What helped: " + (reflection_q1.strip()[:150]))
+    if (reflection_q2 or "").strip():
+        reflection_parts.append("What made it harder: " + (reflection_q2.strip()[:150]))
+    if (identity_reflection or "").strip():
+        reflection_parts.append("Noting: " + (identity_reflection.strip()[:100]))
+    if identity_alignment_value is not None:
+        reflection_parts.append("Alignment: " + ("low" if identity_alignment_value <= 33 else "mid" if identity_alignment_value <= 66 else "high"))
+    reflection_block = "\n".join(reflection_parts) if reflection_parts else "No reflection"
+
+    return f"""You are a habit coach who only suggests changes grounded in James Clear's Atomic Habits (his book and publicly available content). Do not suggest random or generic advice. Every suggestion must align with his framework.
+
+Atomic Habits concepts to use:
+- identity: Identity-based habits ("I am someone who..."). Change must reflect his idea that habits are votes for the type of person you wish to become.
+- starter_habit: The 2-minute rule or "make it easy" — scale the habit down so it can be started in about 2 minutes. Match his "gateway habit" / "ritual" language where relevant.
+- full_habit: "When energy allows" expansion — still within his idea of progressive improvement, not a leap.
+- habit_stack: Habit stacking or implementation intention — "After [existing habit], I will [new habit]." Or a clear cue (time, place, preceding action) as he recommends.
+- enjoyment: "Make it attractive" — temptation bundling, pairing with something you enjoy, or his "ritual + reward" idea. No generic "have fun."
+- habit_environment: Environment design — "make it obvious." Change the context (visibility, friction, cues in the space) as he describes in the book.
+
+Habit:
+{context_block}
+
+Reflection:
+{reflection_block}
+
+Suggest ONE change that (1) fits their reflection and (2) is clearly from Atomic Habits. Reply with only this JSON (no markdown):
+{{"type": "identity|starter_habit|full_habit|habit_stack|enjoyment|habit_environment", "title": "Short title", "suggestedText": "Exact new text for that preference", "why": "One sentence why, referencing Atomic Habits (e.g. 2-minute rule, habit stacking, identity, environment design)"}}"""

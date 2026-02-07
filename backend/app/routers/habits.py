@@ -18,7 +18,9 @@ from app.models.habit import (
     HabitOptionRequest,
     HabitOptionResponse,
     ObviousCueRequest,
-    ObviousCueResponse
+    ObviousCueResponse,
+    PreferenceEditOptionsRequest,
+    PreferenceEditOptionsResponse,
 )
 from app.services.habit_service import habit_service
 from app.services.llm_service import llm_service
@@ -27,7 +29,8 @@ from app.utils.prompts import (
     get_identity_generation_prompt,
     get_short_habit_options_prompt,
     get_full_habit_options_prompt,
-    get_obvious_cues_prompt
+    get_obvious_cues_prompt,
+    get_preference_edit_options_prompt,
 )
 from app.core.auth import CurrentUser, get_current_user
 
@@ -360,6 +363,74 @@ async def generate_obvious_cues(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generating obvious cues: {str(e)}"
+        )
+
+
+@router.post(
+    "/getPreferenceEditOptions",
+    response_model=PreferenceEditOptionsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get 3 LLM alternatives for editing a habit preference",
+    description="Used in Reflection flow when user taps pencil to edit a preference. Returns exactly 3 alternative phrasings.",
+)
+async def get_preference_edit_options(
+    request: PreferenceEditOptionsRequest,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Get 3 LLM-generated alternatives for a single habit preference (identity, starter_habit, etc.).
+    Uses habit context; userId is taken from authenticated user.
+    """
+    try:
+        uid = current_user.uid
+        logger.info(
+            f"POST /getPreferenceEditOptions - userId: {uid}, habitId: {request.habitId}, "
+            f"preferenceKey: {request.preferenceKey}"
+        )
+        habit_context = await habit_service.get_habit_context(
+            db, uid, request.habitId
+        )
+        if not habit_context:
+            habit_context = {}
+        current_value = (request.currentValue or "").strip()
+        reflection_context = None
+        if (
+            (request.reflectionQ1 and request.reflectionQ1.strip())
+            or (request.reflectionQ2 and request.reflectionQ2.strip())
+            or (request.identityReflection and request.identityReflection.strip())
+            or request.identityAlignmentValue is not None
+        ):
+            reflection_context = {
+                "reflectionQ1": (request.reflectionQ1 or "").strip() or None,
+                "reflectionQ2": (request.reflectionQ2 or "").strip() or None,
+                "identityReflection": (request.identityReflection or "").strip() or None,
+                "identityAlignmentValue": request.identityAlignmentValue,
+            }
+        prompt = get_preference_edit_options_prompt(
+            habit_context,
+            request.preferenceKey,
+            current_value,
+            reflection_context,
+        )
+        try:
+            options = await llm_service.generate_list(prompt)
+        except ValueError as e:
+            logger.warning(
+                f"LLM unavailable for preference edit options, using fallback. Error: {str(e)}"
+            )
+            options = []
+        # Ensure exactly 3 options
+        options = [o.strip() for o in options if o and o.strip()][:3]
+        while len(options) < 3:
+            options.append(current_value or f"Option {len(options) + 1}")
+        return PreferenceEditOptionsResponse(options=options[:3])
+    except Exception as e:
+        logger.error(f"Error getting preference edit options: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting preference edit options: {str(e)}"
         )
 
 

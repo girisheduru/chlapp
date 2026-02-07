@@ -374,127 +374,6 @@ const ReflectionQuestionInput = React.memo(({ question, value, onChange, placeho
   </div>
 ));
 
-const ExperimentOption = React.memo(({ selected, onClick, emoji, title, currentLabel, currentValue, suggestionLabel, text, optionId, onTextChange, why }) => (
-  <div
-    onClick={() => onClick()}
-    style={{
-      display: 'block',
-      width: '100%',
-      padding: '18px 20px',
-      borderRadius: 16,
-      border: `2px solid ${selected ? colors.primaryLight : colors.border}`,
-      background: selected ? 'rgba(74, 124, 89, 0.05)' : colors.card,
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      textAlign: 'left',
-    }}
-  >
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: selected ? 14 : 0 }}>
-      <div style={{
-        width: 24,
-        height: 24,
-        borderRadius: '50%',
-        border: `2px solid ${selected ? colors.primaryLight : colors.border}`,
-        background: selected ? colors.primaryLight : 'transparent',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        {selected && <span style={{ color: 'white', fontSize: 12 }}>✓</span>}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 18 }}>{emoji}</span>
-        <span style={{ fontFamily: fonts.body, fontSize: 15, fontWeight: 600, color: colors.text }}>{title}</span>
-      </div>
-    </div>
-    {!selected && (
-      <div style={{ marginLeft: 36, marginTop: 8 }}>
-        <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, margin: 0 }}>
-          <span style={{ color: colors.textMuted }}>Current:</span> {currentValue}
-        </p>
-      </div>
-    )}
-    {selected && (
-      <div style={{ marginLeft: 36 }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ background: colors.backgroundDark, borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
-          <p style={{ fontFamily: fonts.body, fontSize: 11, fontWeight: 600, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 4px 0' }}>{currentLabel}</p>
-          <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.text, margin: 0 }}>{currentValue}</p>
-        </div>
-        <div>
-          <p style={{ fontFamily: fonts.body, fontSize: 11, fontWeight: 600, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 8px 0' }}>{suggestionLabel}</p>
-          <textarea
-            value={text}
-            onChange={(e) => onTextChange(optionId, e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 14px',
-              borderRadius: 10,
-              border: `1px solid ${colors.border}`,
-              fontSize: 14,
-              fontFamily: fonts.body,
-              color: colors.text,
-              background: colors.card,
-              resize: 'none',
-              minHeight: 64,
-              lineHeight: 1.5,
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-        {why && (
-          <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, margin: '12px 0 0 0', lineHeight: 1.5 }}>
-            💡 <em>{why}</em>
-          </p>
-        )}
-      </div>
-    )}
-  </div>
-));
-
-const KeepSameOption = ({ selected, onClick }) => (
-  <div
-    onClick={onClick}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      width: '100%',
-      padding: '16px 20px',
-      borderRadius: 16,
-      border: `2px solid ${selected ? colors.primaryLight : colors.border}`,
-      background: selected ? 'rgba(74, 124, 89, 0.05)' : colors.card,
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      textAlign: 'left',
-    }}
-  >
-    <div style={{
-      width: 24,
-      height: 24,
-      borderRadius: '50%',
-      border: `2px solid ${selected ? colors.primaryLight : colors.border}`,
-      background: selected ? colors.primaryLight : 'transparent',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    }}>
-      {selected && <span style={{ color: 'white', fontSize: 12 }}>✓</span>}
-    </div>
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 18 }}>🔄</span>
-        <span style={{ fontFamily: fonts.body, fontSize: 15, fontWeight: 600, color: colors.text }}>Keep everything the same</span>
-      </div>
-      <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, margin: '6px 0 0 36px' }}>
-        This week had a rhythm. Continue and observe what happens.
-      </p>
-    </div>
-  </div>
-);
-
 // ----- Main Reflection Page -----
 export default function Reflection() {
   const location = useLocation();
@@ -513,6 +392,9 @@ export default function Reflection() {
   const [reflectionQ2, setReflectionQ2] = useState('');
   const [selectedExperiment, setSelectedExperiment] = useState(null);
   const [experimentTexts, setExperimentTexts] = useState({});
+  const [suggestion, setSuggestion] = useState(null);
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+  const [suggestionError, setSuggestionError] = useState(null);
   const [reflectionItemsLoading, setReflectionItemsLoading] = useState(false);
   const [reflectionItemsError, setReflectionItemsError] = useState(null);
   const [apiReflectionData, setApiReflectionData] = useState(null);
@@ -550,11 +432,13 @@ export default function Reflection() {
           // Only restore if the saved reflection is from the current week
           const isCurrentWeek = saved.weekRange && weekData?.weekRange && saved.weekRange === weekData.weekRange;
           if (isCurrentWeek) {
-            if (saved.reflectionQ1) setReflectionQ1(saved.reflectionQ1);
-            if (saved.reflectionQ2) setReflectionQ2(saved.reflectionQ2);
+            // Do not restore reflection Q1, Q2, or identity reflection — user starts fresh each time
             if (saved.identityAlignmentValue != null) setAlignmentValue(saved.identityAlignmentValue);
-            if (saved.identityReflection) setIdentityReflection(saved.identityReflection);
-            if (saved.selectedExperiment) setSelectedExperiment(saved.selectedExperiment);
+            if (saved.selectedExperiment) {
+              const ex = saved.selectedExperiment;
+              const valid = ['maintain', 'identity', 'starter_habit', 'full_habit', 'habit_stack', 'enjoyment', 'habit_environment'];
+              setSelectedExperiment(valid.includes(ex) ? ex : 'maintain');
+            }
             // Restore all experiment texts (not just the selected one)
             if (saved.experimentTexts && typeof saved.experimentTexts === 'object') {
               setExperimentTexts((prev) => ({ ...prev, ...saved.experimentTexts }));
@@ -568,6 +452,47 @@ export default function Reflection() {
 
     return () => { cancelled = true; };
   }, [habitId]);
+
+  // When entering Screen 2, fetch one LLM suggestion based on Screen 1 reflection.
+  // Do NOT include suggestionLoading in deps: when we set it true, React re-ran this effect,
+  // ran cleanup (cancelled=true), so the response was ignored. Only re-run when screen/habit/answers change.
+  useEffect(() => {
+    if (currentScreen !== 2 || !habitId) return;
+    if (suggestion != null) return;
+    let cancelled = false;
+    console.log('[Reflection Screen 2] Starting getReflectionSuggestion', { habitId });
+    setSuggestionLoading(true);
+    setSuggestionError(null);
+    reflectionsAPI
+      .getReflectionSuggestion({
+        habitId,
+        reflectionQ1: reflectionQ1 || null,
+        reflectionQ2: reflectionQ2 || null,
+        identityReflection: identityReflection || null,
+        identityAlignmentValue: alignmentValue,
+      })
+      .then((data) => {
+        console.log('[Reflection Screen 2] getReflectionSuggestion success', data);
+        if (!cancelled && data) setSuggestion(data);
+      })
+      .catch((err) => {
+        console.error('[Reflection Screen 2] getReflectionSuggestion error', err);
+        if (!cancelled) {
+          setSuggestionError(err?.message || 'Could not load suggestion');
+          setSuggestion(null);
+        }
+      })
+      .finally(() => {
+        console.log('[Reflection Screen 2] getReflectionSuggestion finally (cancelled=', cancelled, ')');
+        if (!cancelled) setSuggestionLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [currentScreen, habitId, suggestion, reflectionQ1, reflectionQ2, identityReflection, alignmentValue]);
+
+  // Reset suggestion when going back to Screen 1 so next time we get a fresh suggestion
+  useEffect(() => {
+    if (currentScreen === 1) setSuggestion(null);
+  }, [currentScreen]);
 
   const stats = useMemo(() => {
     if (!weekData || !weekData.days) {
@@ -616,63 +541,8 @@ export default function Reflection() {
     return list.slice(0, 2);
   }, [apiReflectionData?.insights, stats.showedUpDespiteLowEnergy, stats.skipObstacles]);
 
-  const safeApiSuggestions = Array.isArray(apiReflectionData?.experimentSuggestions)
-    ? apiReflectionData.experimentSuggestions
-    : [];
-
   const reflectionQuestion1 = apiReflectionData?.reflectionQuestions?.question1 ?? 'What helped you show up — even a little? (optional)';
   const reflectionQuestion2 = apiReflectionData?.reflectionQuestions?.question2 ?? 'On days it didn\'t happen, what made starting feel harder? (optional)';
-
-  const experimentOptions = useMemo(() => {
-    if (!userData) return [];
-    const byType = {};
-    safeApiSuggestions.forEach((s) => { if (s && s.type) byType[s.type] = s; });
-    const ids = ['anchor', 'environment', 'enjoyment'];
-    const emojis = { anchor: '🔗', environment: '👁️', enjoyment: '🎵' };
-    const titles = {
-      anchor: 'Strengthen your anchor',
-      environment: 'Prep your environment',
-      enjoyment: 'Make it more enjoyable',
-    };
-    const currentLabels = {
-      anchor: 'Current anchor',
-      environment: 'Current setup',
-      enjoyment: 'What you enjoy',
-    };
-    const suggestionLabels = {
-      anchor: 'Try this instead',
-      environment: 'Try this instead',
-      enjoyment: 'Try this',
-    };
-    const fallbackValues = {
-      anchor: userData.anchor.label,
-      environment: Array.isArray(userData.environmentSetup) ? userData.environmentSetup.join(', ') : userData.environmentSetup,
-      enjoyment: Array.isArray(userData.funElements) ? userData.funElements.join(', ') : userData.funElements,
-    };
-    const fallbackDefaults = {
-      anchor: 'At 5:30pm when I close my laptop',
-      environment: 'Gym bag packed with clothes + water + shoes inside, on the front seat of my car',
-      enjoyment: 'Play my hype gym playlist the moment I get in the car',
-    };
-    const fallbackWhys = {
-      anchor: 'A specific time creates a sharper trigger than a vague "after work" — your brain knows exactly when to switch modes.',
-      environment: "When everything is ready and visible, there's nothing left to decide — you just go.",
-      enjoyment: "Pairing something you love with the habit makes starting feel like a reward, not a chore.",
-    };
-    return ids.map((id) => {
-      const api = byType[id];
-      return {
-        id,
-        emoji: emojis[id],
-        title: api?.title ?? titles[id],
-        currentLabel: currentLabels[id],
-        currentValue: api?.currentValue ?? fallbackValues[id],
-        suggestionLabel: suggestionLabels[id],
-        defaultText: api?.suggestedText ?? fallbackDefaults[id],
-        why: api?.why ?? fallbackWhys[id],
-      };
-    });
-  }, [userData, safeApiSuggestions]);
 
   // No habit = redirect to home
   if (!habit || !userData) {
@@ -687,21 +557,23 @@ export default function Reflection() {
   const onReflectionQ1Change = useCallback((val) => setReflectionQ1(val), []);
   const onReflectionQ2Change = useCallback((val) => setReflectionQ2(val), []);
   const onIdentityReflectionChange = useCallback((e) => setIdentityReflection(e.target.value), []);
-  const handleExperimentTextChange = useCallback((optionId, text) => {
-    setExperimentTexts((prev) => ({ ...prev, [optionId]: text }));
-  }, []);
 
-  const getExperimentText = (id) => {
-    if (experimentTexts[id] !== undefined) return experimentTexts[id];
-    const option = experimentOptions.find(o => o.id === id);
-    return option ? option.defaultText : '';
+  const suggestionTypeLabels = {
+    identity: 'Identity',
+    starter_habit: 'Baseline habit',
+    full_habit: 'When energy allows',
+    habit_stack: 'Cue',
+    enjoyment: 'Enjoyment',
+    habit_environment: 'Environment support',
   };
-  const handleExperimentSelect = (id) => {
-    setSelectedExperiment(id);
-    if (experimentTexts[id] === undefined && id !== 'maintain') {
-      const option = experimentOptions.find(o => o.id === id);
-      if (option) setExperimentTexts(prev => ({ ...prev, [id]: option.defaultText }));
-    }
+  // Clear "which part" labels for the suggestion card (cue, short habit, long habit, identity, etc.)
+  const suggestionPartLabel = {
+    identity: 'Identity',
+    starter_habit: 'Short habit (baseline)',
+    full_habit: 'Long habit (when energy allows)',
+    habit_stack: 'Cue',
+    enjoyment: 'Enjoyment',
+    habit_environment: 'Environment support',
   };
 
   // ----- Screen 1: What we noticed -----
@@ -824,7 +696,7 @@ export default function Reflection() {
     </Card>
   );
 
-  // ----- Screen 2: Your personal habit lab -----
+  // ----- Screen 2: One LLM suggestion based on Screen 1 reflection -----
   const screen2 = (
     <Card>
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
@@ -838,34 +710,61 @@ export default function Reflection() {
           justifyContent: 'center',
           margin: '0 auto 12px',
           fontSize: 24,
-        }}>🧪</div>
-        <h1 style={{ fontFamily: fonts.heading, fontSize: 22, fontWeight: 600, color: colors.text, margin: '0 0 8px 0' }}>Your personal habit lab</h1>
+        }}>💡</div>
+        <h1 style={{ fontFamily: fonts.heading, fontSize: 22, fontWeight: 600, color: colors.text, margin: '0 0 8px 0' }}>Based on your reflection</h1>
         <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, margin: 0, lineHeight: 1.55, maxWidth: 340, marginLeft: 'auto', marginRight: 'auto' }}>
-          Small experiments help you learn what actually works for you. Based on how this habit showed up for you this week, here's one small thing we can test together.
+          Here's one change that could help. Save it to update your habit, or keep your current plan.
         </p>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-        {experimentOptions.map((option) => (
-          <ExperimentOption
-            key={option.id}
-            optionId={option.id}
-            selected={selectedExperiment === option.id}
-            onClick={() => handleExperimentSelect(option.id)}
-            emoji={option.emoji}
-            title={option.title}
-            currentLabel={option.currentLabel}
-            currentValue={option.currentValue}
-            suggestionLabel={option.suggestionLabel}
-            text={getExperimentText(option.id)}
-            onTextChange={handleExperimentTextChange}
-            why={option.why}
-          />
-        ))}
-        <KeepSameOption selected={selectedExperiment === 'maintain'} onClick={() => handleExperimentSelect('maintain')} />
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <Button variant="secondary" onClick={() => setCurrentScreen(1)}>← Back</Button>
-        <Button onClick={() => setCurrentScreen(3)} disabled={!selectedExperiment}>Set experiment →</Button>
+      {suggestionLoading ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32, background: colors.background, borderRadius: 12, marginBottom: 24 }}>
+          <div style={{ width: 24, height: 24, border: `2px solid ${colors.border}`, borderTopColor: colors.primary, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <span style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>Thinking of a suggestion...</span>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      ) : suggestionError ? (
+        <div style={{ background: colors.warning || '#FFF8E1', borderRadius: 12, padding: 16, marginBottom: 24, border: `1px solid ${colors.border}` }}>
+          <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, margin: 0 }}>{suggestionError}</p>
+          <Button variant="secondary" onClick={() => { setSuggestionError(null); setSuggestionLoading(false); setSuggestion(null); }} style={{ marginTop: 12 }}>Try again</Button>
+        </div>
+      ) : suggestion ? (
+        <div style={{
+          background: colors.backgroundDark,
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 24,
+          border: `1px solid ${colors.border}`,
+        }}>
+          <p style={{ fontFamily: fonts.body, fontSize: 10, fontWeight: 600, color: colors.primary, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 10px 0' }}>
+            This updates your: {suggestionPartLabel[suggestion.type] ?? suggestion.type}
+          </p>
+          <p style={{ fontFamily: fonts.body, fontSize: 11, fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 6px 0' }}>{suggestion.title}</p>
+          <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.text, margin: '0 0 12px 0', lineHeight: 1.5 }}>{suggestion.suggestedText}</p>
+          <p style={{ fontFamily: fonts.body, fontSize: 13, color: colors.textLight, margin: 0, fontStyle: 'italic', lineHeight: 1.4 }}>💡 {suggestion.why}</p>
+        </div>
+      ) : null}
+      {suggestion && !suggestionLoading && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+          <Button
+            onClick={() => { setSelectedExperiment(suggestion.type); setCurrentScreen(3); }}
+            style={{ width: '100%' }}
+          >
+            Save this change →
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => { setSelectedExperiment('maintain'); setCurrentScreen(3); }}
+            style={{ width: '100%' }}
+          >
+            Keep my plan
+          </Button>
+        </div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: suggestion ? 0 : 24 }}>
+        <Button variant="ghost" onClick={() => setCurrentScreen(1)}>← Back</Button>
+        {!suggestion && !suggestionLoading && !suggestionError && (
+          <Button onClick={() => { setSelectedExperiment('maintain'); setCurrentScreen(3); }}>Skip →</Button>
+        )}
       </div>
     </Card>
   );
@@ -876,29 +775,23 @@ export default function Reflection() {
   const handleStartMyWeek = async () => {
     setSaving(true);
     try {
-      // Build all experiment texts (so they persist across sessions)
-      const allTexts = {};
-      ['anchor', 'environment', 'enjoyment'].forEach((id) => {
-        const text = getExperimentText(id);
-        if (text) allTexts[id] = text;
-      });
-
+      const experimentText =
+        suggestion && selectedExperiment === suggestion.type
+          ? suggestion.suggestedText
+          : (experimentTexts[selectedExperiment] ?? null);
       await reflectionsAPI.saveReflectionAnswers({
         habitId: habitId,
         reflectionQ1: reflectionQ1 || null,
         reflectionQ2: reflectionQ2 || null,
         identityAlignmentValue: alignmentValue,
         identityReflection: identityReflection || null,
-        selectedExperiment: selectedExperiment,
-        experimentText: selectedExperiment && selectedExperiment !== 'maintain'
-          ? getExperimentText(selectedExperiment)
-          : null,
-        experimentTexts: allTexts,
+        selectedExperiment: selectedExperiment ?? 'maintain',
+        experimentText: experimentText || null,
+        experimentTexts: null,
         weekRange: weekData.weekRange || null,
       });
     } catch (err) {
       console.error('Failed to save reflection answers:', err);
-      // Still navigate home even if save fails
     } finally {
       setSaving(false);
       navigate('/', { replace: true });
@@ -908,19 +801,17 @@ export default function Reflection() {
   // ----- Screen 3: Your week ahead -----
   const getSelectedExperimentText = () => {
     if (selectedExperiment === 'maintain') return 'Continue with your current setup and observe what happens.';
-    if (experimentTexts[selectedExperiment]) return experimentTexts[selectedExperiment];
-    const option = experimentOptions.find(o => o.id === selectedExperiment);
-    return option ? option.defaultText : 'Continue with your current approach';
+    if (suggestion && selectedExperiment === suggestion.type) return suggestion.suggestedText;
+    return experimentTexts[selectedExperiment] ?? 'Your updated preference';
   };
   const getSelectedExperimentTitle = () => {
     if (selectedExperiment === 'maintain') return 'Keep everything the same';
-    const option = experimentOptions.find(o => o.id === selectedExperiment);
-    return option ? option.title : 'Your experiment';
+    if (suggestion && selectedExperiment === suggestion.type) return suggestion.title;
+    return suggestionTypeLabels[selectedExperiment] ?? 'Your experiment';
   };
   const getSelectedExperimentEmoji = () => {
     if (selectedExperiment === 'maintain') return '🔄';
-    const option = experimentOptions.find(o => o.id === selectedExperiment);
-    return option ? option.emoji : '🧪';
+    return '💡';
   };
 
   const screen3 = (

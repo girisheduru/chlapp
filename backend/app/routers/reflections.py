@@ -13,6 +13,8 @@ from app.models.reflection import (
     InsightItem,
     ReflectionQuestions,
     ExperimentSuggestion,
+    ReflectionSuggestionRequest,
+    ReflectionSuggestionResponse,
     ReflectionAnswerCreate,
     ReflectionAnswerResponse,
 )
@@ -20,7 +22,7 @@ from app.services.llm_service import llm_service
 from app.services.habit_service import habit_service
 from app.services.streak_service import streak_service
 from app.services.reflection_cache_service import reflection_cache_service
-from app.utils.prompts import get_reflection_items_prompt
+from app.utils.prompts import get_reflection_items_prompt, get_reflection_suggestion_prompt
 from app.core.auth import CurrentUser, get_current_user
 
 logger = logging.getLogger(__name__)
@@ -194,6 +196,72 @@ async def prefetch_reflections(
 
 
 @router.post(
+    "/getReflectionSuggestion",
+    response_model=ReflectionSuggestionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get one LLM suggestion based on Screen 1 reflection",
+    description="Returns one concrete change (e.g. identity, cue, 2-min habit) informed by the user's reflection answers.",
+)
+async def get_reflection_suggestion(
+    request: ReflectionSuggestionRequest,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Get one suggestion for what to change on the habit, based on habit context + user's Screen 1 reflection.
+    """
+    uid = current_user.uid
+    print(f"[getReflectionSuggestion] START userId={uid} habitId={request.habitId}")
+    logger.info(f"POST /getReflectionSuggestion - userId: {uid}, habitId: {request.habitId}")
+    try:
+        print("[getReflectionSuggestion] Fetching habit context...")
+        habit_context = await habit_service.get_habit_context(db, uid, request.habitId)
+        if not habit_context:
+            habit_context = {}
+        print(f"[getReflectionSuggestion] Habit context keys: {list(habit_context.keys())}")
+        prompt = get_reflection_suggestion_prompt(
+            habit_context,
+            request.reflectionQ1 or "",
+            request.reflectionQ2 or "",
+            request.identityReflection or "",
+            request.identityAlignmentValue,
+        )
+        print(f"[getReflectionSuggestion] Calling LLM (prompt length={len(prompt)})...")
+        logger.info(f"getReflectionSuggestion calling LLM, prompt_length={len(prompt)}")
+        try:
+            # Use low max_tokens for a single small JSON object — reduces latency significantly
+            data = await llm_service.generate_json(prompt, max_tokens=400)
+            print(f"[getReflectionSuggestion] LLM returned: type={data.get('type')} title={data.get('title', '')[:40]}...")
+            logger.info(f"getReflectionSuggestion LLM success type={data.get('type')}")
+        except ValueError as e:
+            print(f"[getReflectionSuggestion] LLM failed (ValueError), using fallback: {e}")
+            logger.warning(f"LLM unavailable for reflection suggestion, using fallback: {e}")
+            data = {
+                "type": "starter_habit",
+                "title": "Try an even smaller first step",
+                "suggestedText": habit_context.get("starter_habit") or "Do one tiny action (e.g. put on shoes, open the app)",
+                "why": "A smaller step makes showing up easier on low-energy days.",
+            }
+        valid_types = ("identity", "starter_habit", "full_habit", "habit_stack", "enjoyment", "habit_environment")
+        suggestion_type = data.get("type") if data.get("type") in valid_types else "starter_habit"
+        print(f"[getReflectionSuggestion] SUCCESS returning type={suggestion_type}")
+        return ReflectionSuggestionResponse(
+            type=suggestion_type,
+            title=data.get("title", "One small change"),
+            suggestedText=data.get("suggestedText", ""),
+            why=data.get("why", ""),
+        )
+    except Exception as e:
+        print(f"[getReflectionSuggestion] ERROR: {e}")
+        logger.error(f"Error getting reflection suggestion: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting reflection suggestion: {str(e)}",
+        )
+
+
+@router.post(
     "/saveReflectionAnswers",
     response_model=ReflectionAnswerResponse,
     status_code=status.HTTP_201_CREATED,
@@ -241,13 +309,23 @@ async def save_reflection_answers(
         reflection_doc["_id"] = str(result.inserted_id)
         logger.info(f"Saved reflection answers - _id: {reflection_doc['_id']}")
 
-        # 2. Update habit preferences if an experiment was selected (not 'maintain')
-        if data.selectedExperiment and data.selectedExperiment != "maintain" and selected_text:
-            # Map experiment type to habit preference field
+        # 2. Update habit preferences if an experiment was selected (not 'maintain' or 'update_preferences')
+        # For 'update_preferences', the frontend already called saveUserHabitPreference with full preferences.
+        if (
+            data.selectedExperiment
+            and data.selectedExperiment not in ("maintain", "update_preferences")
+            and selected_text
+        ):
+            # Map experiment/suggestion type to habit preference field (all six preference keys)
             field_map = {
+                "identity": "preferences.identity",
+                "starter_habit": "preferences.starter_habit",
+                "full_habit": "preferences.full_habit",
+                "habit_stack": "preferences.habit_stack",
                 "anchor": "preferences.habit_stack",
-                "environment": "preferences.habit_environment",
                 "enjoyment": "preferences.enjoyment",
+                "environment": "preferences.habit_environment",
+                "habit_environment": "preferences.habit_environment",
             }
             pref_field = field_map.get(data.selectedExperiment)
             if pref_field:

@@ -90,6 +90,38 @@ class ReflectionItemsResponse(BaseModel):
 # ----- Save reflection answers -----
 
 
+# ----- Single reflection suggestion (Screen 2) -----
+
+ReflectionSuggestionType = Literal[
+    "identity",
+    "starter_habit",
+    "full_habit",
+    "habit_stack",
+    "enjoyment",
+    "habit_environment",
+]
+
+
+class ReflectionSuggestionRequest(BaseModel):
+    """Request for one LLM suggestion based on Screen 1 reflection."""
+    habitId: str = Field(..., description="Habit ID")
+    reflectionQ1: Optional[str] = Field(None, description="What helped you show up (Screen 1)")
+    reflectionQ2: Optional[str] = Field(None, description="What made starting harder (Screen 1)")
+    identityReflection: Optional[str] = Field(None, description="I'm noticing that... (Screen 1)")
+    identityAlignmentValue: Optional[int] = Field(None, ge=0, le=100, description="Identity alignment slider 0-100")
+
+
+class ReflectionSuggestionResponse(BaseModel):
+    """One suggestion: which preference to change and the suggested text."""
+    type: ReflectionSuggestionType = Field(..., description="Which preference to update")
+    title: str = Field(..., description="Short title for the suggestion")
+    suggestedText: str = Field(..., description="The new value for that preference")
+    why: str = Field(..., description="Why this might help")
+
+
+# ----- Save reflection answers -----
+
+
 class ReflectionAnswerCreate(BaseModel):
     """Request model for saving reflection answers from the reflection flow."""
 

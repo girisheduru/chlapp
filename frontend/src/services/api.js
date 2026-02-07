@@ -171,6 +171,22 @@ export const habitsAPI = {
   generateShortHabitOptions: (data) => apiRequest('/generateShortHabitOptions', { method: 'POST', body: data }),
   generateFullHabitOptions: (data) => apiRequest('/generateFullHabitOptions', { method: 'POST', body: data }),
   generateObviousCues: (data) => apiRequest('/generateObviousCues', { method: 'POST', body: data }),
+  /** Get 3 LLM-generated alternatives for editing a habit preference (Reflection flow). Optional reflection context from Screen 1 improves suggestions. */
+  getPreferenceEditOptions: (habitId, preferenceKey, currentValue, reflectionContext = null) =>
+    apiRequest('/getPreferenceEditOptions', {
+      method: 'POST',
+      body: {
+        habitId,
+        preferenceKey,
+        currentValue: currentValue ?? null,
+        ...(reflectionContext && {
+          reflectionQ1: reflectionContext.reflectionQ1 ?? null,
+          reflectionQ2: reflectionContext.reflectionQ2 ?? null,
+          identityReflection: reflectionContext.identityReflection ?? null,
+          identityAlignmentValue: reflectionContext.identityAlignmentValue ?? null,
+        }),
+      },
+    }),
 };
 
 /**
@@ -205,6 +221,9 @@ export const reflectionsAPI = {
   /** Get latest saved reflection answers for a habit. Returns null if none found. */
   getLatestReflectionAnswers: (habitId) =>
     apiRequest(`/getLatestReflectionAnswers?habitId=${encodeURIComponent(habitId)}`).catch(() => null),
+  /** Get one LLM suggestion based on Screen 1 reflection (for Reflection Screen 2). */
+  getReflectionSuggestion: (body) =>
+    apiRequest('/getReflectionSuggestion', { method: 'POST', body }),
 };
 
 /**
