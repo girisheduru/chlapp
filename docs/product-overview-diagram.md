@@ -97,18 +97,20 @@ flowchart TB
 ```mermaid
 flowchart LR
   subgraph UserDevice["User's device"]
-    App["Clear Habit Lab app<br/>(deployed on Vercel)"]
+    App["Clear Habit Lab app<br/>(React · Vercel)"]
   end
 
   subgraph OurSystems["Our systems"]
     API["API server<br/>(FastAPI, Python · Railway)"]
     DB[(MongoDB<br/>Habits & streaks data)]
     AI[OpenAI models]
+    Opik["Comet Opik<br/>AI evals & observability"]
   end
 
   App <-->|"Save & load habits, check-ins, reflections"| API
   API <--> DB
   API <-->|"Generate options & insights"| AI
+  API -.->|"Trace & evaluate"| Opik
 
   style UserDevice fill:#F5F2ED,stroke:#E8E4DF,color:#3D3229
   style OurSystems fill:#FEFDFB,stroke:#E8E4DF,color:#3D3229
@@ -116,12 +118,14 @@ flowchart LR
   style API fill:#4A7C59,stroke:#2D5A45,color:#FEFDFB
   style DB fill:#E8F5E9,stroke:#4A7C59,color:#3D3229
   style AI fill:#FFF9E6,stroke:#E8E4DF,color:#3D3229
+  style Opik fill:#EDE8E0,stroke:#6B5D4D,color:#3D3229
 ```
 
-- **App (Vercel):** Frontend — what the user sees and taps (dashboard, onboarding, check-in, reflection). Deployed on Vercel.
+- **App (React / Vercel):** Frontend — what the user sees and taps (dashboard, onboarding, check-in, reflection). Built with React; deployed on Vercel.
 - **API (FastAPI, Python / Railway):** Backend — receives and sends habits, check-ins, streaks, and reflection requests. Built with FastAPI (Python); deployed as a Railway project.
 - **MongoDB:** Database — stores habits, preferences, check-in history, and streaks.
 - **OpenAI models:** Used to generate identity/habit/cue options in onboarding, and insights + experiments in reflection (optionally with web search for Atomic Habits content).
+- **Comet Opik:** AI evals and observability — we use Opik to trace and evaluate the AI parts of the application (LLM calls, reflection agent).
 
 ---
 
