@@ -193,7 +193,8 @@ class ReflectionCacheService:
                     from app.services.llm_service import llm_service
                     from app.utils.prompts import get_reflection_items_prompt
                     prompt = get_reflection_items_prompt(habit_context, streak_data)
-                    data = await llm_service.generate_json(prompt)
+                    # Reflection JSON is large; need enough output tokens to avoid truncation
+                    data = await llm_service.generate_json(prompt, max_tokens=4096)
                     logger.info(f"Background reflection generated via direct LLM for user={user_id}, habit={habit_id}")
                 except Exception as llm_err:
                     logger.warning(

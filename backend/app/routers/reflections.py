@@ -91,9 +91,18 @@ async def get_reflection_items(
                     "Reflection agent unavailable or failed, falling back to direct LLM: %s",
                     agent_err,
                 )
-                prompt = get_reflection_items_prompt(habit_context, streak_data)
-                data = await llm_service.generate_json(prompt)
-            
+                try:
+                    prompt = get_reflection_items_prompt(habit_context, streak_data)
+                    # Reflection JSON is large; need enough output tokens to avoid truncation
+                    data = await llm_service.generate_json(prompt, max_tokens=4096)
+                except Exception as llm_err:
+                    logger.warning(
+                        "Direct LLM reflection also failed (%s); using default reflection payload",
+                        llm_err,
+                    )
+                    from app.services.reflection_cache_service import DEFAULT_REFLECTION_DATA
+                    data = DEFAULT_REFLECTION_DATA.copy()
+
             # Save to cache for future requests
             await reflection_cache_service.save_cached_reflection(db, uid, habitId, data)
 

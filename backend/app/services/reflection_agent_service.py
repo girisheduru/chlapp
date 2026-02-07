@@ -104,10 +104,12 @@ def _get_llm():
         api_key = settings.llm_api_key
         if not api_key:
             raise ValueError("LLM API key not configured")
+        # Reflection output (insights + questions + 3 experiments) is large; use higher limit to avoid truncation
+        reflection_max_tokens = 4096
         _llm = ChatOpenAI(
             model=settings.llm_model,
             temperature=settings.llm_temperature,
-            max_tokens=getattr(settings, "llm_max_tokens", 2048),
+            max_tokens=reflection_max_tokens,
             api_key=api_key,
             base_url=settings.llm_api_base_url or None,
         )
