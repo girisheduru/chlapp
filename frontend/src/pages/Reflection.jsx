@@ -148,11 +148,11 @@ function WeekTracker({ weekData, stats }) {
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: colors.baseline, border: '1px solid rgba(74, 124, 89, 0.3)' }} />
-          <span style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textMuted }}>Baseline</span>
+          <span style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textMuted }}>Nucleus</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: colors.expanded, border: '1px solid rgba(74, 124, 89, 0.4)' }} />
-          <span style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textMuted }}>Expanded</span>
+          <span style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textMuted }}>Supernova</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: colors.skipped, border: '2px dashed #D4CFC7', boxSizing: 'border-box' }} />
@@ -560,8 +560,8 @@ export default function Reflection() {
 
   const suggestionTypeLabels = {
     identity: 'Identity',
-    starter_habit: 'Baseline habit',
-    full_habit: 'When energy allows',
+    starter_habit: 'Nucleus habit',
+    full_habit: 'Supernova habit',
     habit_stack: 'Cue',
     enjoyment: 'Enjoyment',
     habit_environment: 'Environment support',
@@ -569,8 +569,8 @@ export default function Reflection() {
   // Clear "which part" labels for the suggestion card (cue, short habit, long habit, identity, etc.)
   const suggestionPartLabel = {
     identity: 'Identity',
-    starter_habit: 'Short habit (baseline)',
-    full_habit: 'Long habit (when energy allows)',
+    starter_habit: 'Nucleus habit',
+    full_habit: 'Supernova habit',
     habit_stack: 'Cue',
     enjoyment: 'Enjoyment',
     habit_environment: 'Environment support',

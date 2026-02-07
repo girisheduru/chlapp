@@ -9,15 +9,15 @@ import { habitsAPI } from '../services/api';
 
 const HABIT_PLAN_ROWS = [
   { key: 'identity', label: 'Identity', icon: '🪪', bg: '#E8F5E9' },
-  { key: 'starter_habit', label: 'Baseline habit', icon: '🎯', bg: '#FFF3CD' },
-  { key: 'full_habit', label: 'When energy allows', icon: '⚡', bg: '#E3F2FD' },
+  { key: 'starter_habit', label: 'Nucleus habit', icon: '🎯', bg: '#FFF3CD' },
+  { key: 'full_habit', label: 'Supernova habit', icon: '⚡', bg: '#E3F2FD' },
   { key: 'habit_stack', label: 'Cue', icon: '🔗', bg: '#FCE4EC' },
   { key: 'enjoyment', label: 'Enjoyment', icon: '🎵', bg: '#FFF9E6' },
   { key: 'habit_environment', label: 'Environment support', icon: '👁️', bg: '#F3E5F5' },
 ];
 
 /**
- * Habit tile for Home screen: identity, baseline, stats (stones, streak, done), Check in / Reflect, expandable plan with edit.
+ * Habit tile for Home screen: identity, Nucleus habit, stats (stones, streak, done), Check in / Reflect, expandable plan with edit.
  */
 export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHover, onDelete, onHabitUpdated }) {
   const navigate = useNavigate();

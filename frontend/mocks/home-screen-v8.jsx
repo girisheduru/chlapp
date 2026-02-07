@@ -307,7 +307,7 @@ const HomeScreenV8 = () => {
             "{habit.identity}"
           </h3>
 
-          {/* Baseline habit */}
+          {/* Nucleus habit */}
           <p style={{
             fontFamily: fonts.body,
             fontSize: 13,
@@ -545,7 +545,7 @@ const HomeScreenV8 = () => {
               
               <SummaryRow
                 icon="🎯"
-                label="Baseline habit"
+                label="Nucleus habit"
                 value={habit.baselineHabit}
                 bg="#FFF3CD"
               />
@@ -554,7 +554,7 @@ const HomeScreenV8 = () => {
               
               <SummaryRow
                 icon="⚡"
-                label="When energy allows"
+                label="Supernova habit"
                 value={habit.capacityHabit}
                 bg="#E3F2FD"
               />

@@ -298,14 +298,14 @@ const DailyCheckIn = () => {
               selected={selectedAction === 'baseline'}
               onClick={() => setSelectedAction('baseline')}
               emoji="🌱"
-              title="Baseline habit"
+              title="Nucleus habit"
               subtitle={userData.baselineHabit}
             />
             <ActionOption
               selected={selectedAction === 'capacity'}
               onClick={() => setSelectedAction('capacity')}
               emoji="⚡"
-              title="My expanded version"
+              title="Supernova habit"
               subtitle={userData.capacityHabit}
             />
             <ActionOption

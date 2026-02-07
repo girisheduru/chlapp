@@ -73,13 +73,13 @@ def get_full_habit_options_prompt(habit_context: dict) -> str:
     identity = habit_context.get("identity", "")
     starter_habit = habit_context.get("starter_habit", "")
     
-    prompt = f"""Based on the following habit context, generate 3-5 full habit expressions that represent the complete habit.
+    prompt = f"""Based on the following habit context, generate 3-5 Supernova habit options (how the habit shows up when the user has more energy).
 
 Starting Idea: {starting_idea}
 Identity: {identity}
-Starter Habit: {starter_habit}
+Nucleus Habit: {starter_habit}
 
-Generate full habit options that:
+Generate Supernova habit options that:
 1. Represent the complete habit expression
 2. Are specific and measurable
 3. Build upon the starter habit
@@ -124,8 +124,8 @@ Return only the cues, one per line, without numbering or bullets."""
 # Human-readable labels for preference keys (for LLM prompt)
 PREFERENCE_KEY_LABELS = {
     "identity": "Identity statement (who you're becoming)",
-    "starter_habit": "Baseline habit (minimal showing-up action)",
-    "full_habit": "Full habit / when energy allows",
+    "starter_habit": "Nucleus habit (minimal showing-up action)",
+    "full_habit": "Supernova habit",
     "habit_stack": "Cue or anchor (when/after what)",
     "enjoyment": "Enjoyment or fun elements",
     "habit_environment": "Environment support / setup",
@@ -222,8 +222,8 @@ def get_reflection_items_prompt(habit_context: dict, streak_data: dict) -> str:
 HABIT PLAN:
 - Identity: "{identity}"
 - Starting idea: {starting_idea}
-- Baseline/starter habit: {starter_habit}
-- Full habit (when energy allows): {full_habit}
+- Nucleus habit: {starter_habit}
+- Supernova habit: {full_habit}
 - Anchor/cue: {habit_stack or "Not set"}
 - Environment setup: {habit_environment or "Not set"}
 - Enjoyment/fun elements: {enjoyment or "Not set"}
@@ -324,8 +324,8 @@ def get_reflection_agent_user_prompt(habit_context: dict, streak_data: dict) -> 
 HABIT PLAN:
 - Identity: "{identity}"
 - Starting idea: {starting_idea}
-- Baseline/starter habit: {starter_habit}
-- Full habit (when energy allows): {full_habit}
+- Nucleus habit: {starter_habit}
+- Supernova habit: {full_habit}
 - Anchor/cue: {habit_stack or "Not set"}
 - Environment setup: {habit_environment or "Not set"}
 - Enjoyment/fun elements: {enjoyment or "Not set"}
@@ -368,8 +368,8 @@ def get_reflection_suggestion_prompt(
 
 Atomic Habits concepts to use:
 - identity: Identity-based habits ("I am someone who..."). Change must reflect his idea that habits are votes for the type of person you wish to become.
-- starter_habit: The 2-minute rule or "make it easy" — scale the habit down so it can be started in about 2 minutes. Match his "gateway habit" / "ritual" language where relevant.
-- full_habit: "When energy allows" expansion — still within his idea of progressive improvement, not a leap.
+- starter_habit (Nucleus habit): The 2-minute rule or "make it easy" — scale the habit down so it can be started in about 2 minutes. Match his "gateway habit" / "ritual" language where relevant. Use the product term "Nucleus habit" in titles when suggesting this type.
+- full_habit (Supernova habit): "When energy allows" expansion — still within his idea of progressive improvement, not a leap. Use the product term "Supernova habit" in titles when suggesting this type.
 - habit_stack: Habit stacking or implementation intention — "After [existing habit], I will [new habit]." Or a clear cue (time, place, preceding action) as he recommends.
 - enjoyment: "Make it attractive" — temptation bundling, pairing with something you enjoy, or his "ritual + reward" idea. No generic "have fun."
 - habit_environment: Environment design — "make it obvious." Change the context (visibility, friction, cues in the space) as he describes in the book.

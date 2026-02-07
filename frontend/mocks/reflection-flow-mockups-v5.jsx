@@ -170,7 +170,7 @@ const WeeklyReflectionMockupsV4 = () => {
               border: '1px solid rgba(74, 124, 89, 0.3)',
             }} />
             <span style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textMuted }}>
-              Baseline
+              Nucleus
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -182,7 +182,7 @@ const WeeklyReflectionMockupsV4 = () => {
               border: '1px solid rgba(74, 124, 89, 0.4)',
             }} />
             <span style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textMuted }}>
-              Expanded
+              Supernova
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

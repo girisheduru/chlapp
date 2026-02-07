@@ -88,11 +88,11 @@ const Button = ({ children, variant = 'primary', onClick, disabled, style = {} }
   return <button onClick={onClick} disabled={disabled} style={{ ...baseStyle, ...variants[variant], ...style }}>{children}</button>;
 };
 
-const StepHeader = ({ step, title, subtitle }) => (
+const StepHeader = ({ step, title, subtitle, subtitleStyle }) => (
   <div style={{ marginBottom: 28 }}>
     <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 6px 0' }}>Step {step} of {TOTAL_STEPS}</p>
     <h2 style={{ fontFamily: fonts.heading, fontSize: 26, fontWeight: 600, color: colors.primary, margin: '0 0 8px 0' }}>{title}</h2>
-    <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0 }}>{subtitle}</p>
+    {subtitle && <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0, ...subtitleStyle }}>{subtitle}</p>}
   </div>
 );
 
@@ -186,8 +186,8 @@ const Step3Component = React.memo(({ customFun, onCustomFunChange, selectedFunOp
 
 const Step4Component = React.memo(({ customBaselineHabit, onCustomBaselineHabitChange, baselineHabit, onSelectBaseline, onClearBaselinePreset, onBack, onContinue }) => (
   <Card>
-    <StepHeader step={4} title="What habit counts on low-energy days?" subtitle="" />
-    <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>On busy or low-energy days, this is the smallest action that still means: "I'm this kind of person." It should be easy to start and easy to finish — something you could finish even on a hard day. (Think: 2-minute guideline, if possible)</p>
+    <StepHeader step={4} title="Design your Nucleus Habit" subtitle="What habit counts on low-energy days?" subtitleStyle={{ fontStyle: 'italic', color: colors.primaryLight }} />
+    <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>On busy or low-energy days, this is the smallest action that still means: "I'm this kind of person." It should be easy to start and easy to finish — something you could finish even on a hard day. (Think: 2-minute guideline, if possible) We call this your Nucleus habit.</p>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>{baselineHabitOptions.map((option) => <SelectableOption key={option.id} selected={baselineHabit === option.id && !customBaselineHabit} onClick={() => { onSelectBaseline(option.id); onCustomBaselineHabitChange(''); }}>{option.label}</SelectableOption>)}</div>
     <div style={{ marginBottom: 20 }}><label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or write your own:</label><input type="text" value={customBaselineHabit} onChange={(e) => { onCustomBaselineHabitChange(e.target.value); if (e.target.value) onClearBaselinePreset(); }} placeholder="The smallest action that counts..." style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }} /></div>
     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}><Button variant="secondary" onClick={onBack}>← Back</Button><Button onClick={onContinue} disabled={(!baselineHabit && !customBaselineHabit.trim())}>Continue →</Button></div>
@@ -196,7 +196,7 @@ const Step4Component = React.memo(({ customBaselineHabit, onCustomBaselineHabitC
 
 const Step5Component = React.memo(({ customCapacityExpression, onCustomCapacityExpressionChange, capacityExpression, onSelectCapacity, onClearCapacityPreset, onBack, onContinue }) => (
   <Card>
-    <StepHeader step={5} title="When you have more energy, how might this habit show up?" subtitle="" />
+    <StepHeader step={5} title="Design your Supernova Habit" subtitle="When you have more energy, how might this habit show up?" subtitleStyle={{ fontStyle: 'italic', color: colors.primaryLight }} />
     <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>This isn't a goal or expectation. It's just how the same identity can express itself when you have more capacity.</p>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>{capacityExpressionOptions.map((option) => <SelectableOption key={option.id} selected={capacityExpression === option.id && !customCapacityExpression} onClick={() => { onSelectCapacity(option.id); onCustomCapacityExpressionChange(''); }}>{option.label}</SelectableOption>)}</div>
     <div style={{ marginBottom: 20 }}><label style={{ display: 'block', fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.textMuted, marginBottom: 8 }}>Or write your own:</label><input type="text" value={customCapacityExpression} onChange={(e) => { onCustomCapacityExpressionChange(e.target.value); if (e.target.value) onClearCapacityPreset(); }} placeholder="When I have more energy, I..." style={{ width: '100%', padding: '14px 16px', borderRadius: 10, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, outline: 'none', boxSizing: 'border-box' }} /></div>
@@ -246,7 +246,7 @@ const Step8Component = React.memo(({ selectedIdentity, selectedAnchor, customAnc
   return (
     <Card>
       <div style={{ textAlign: 'center', marginBottom: 28 }}><div style={{ width: 68, height: 68, borderRadius: '50%', background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', fontSize: 30, boxShadow: '0 8px 24px rgba(45, 90, 69, 0.3)' }}>✨</div><h2 style={{ fontFamily: fonts.heading, fontSize: 24, fontWeight: 600, color: colors.primary, margin: '0 0 6px 0' }}>Your Habit Plan</h2><p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, margin: 0 }}>Here's everything we built together.</p></div>
-      <div style={{ background: colors.background, borderRadius: 16, padding: 22, marginBottom: 20 }}><div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}><SummaryRow icon="🪪" label="The identity you're forming" value={`"${selectedIdentityObj?.statement || "I am someone who takes care of my body"}"`} bg="#E8F5E9" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="🎯" label="Baseline habit" value={baselineText || "Pause and notice how my body feels"} bg="#FFF3CD" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="⚡" label="When Circumstances Allow" value={capacityText || "45 minute pilates class"} bg="#E3F2FD" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="🔗" label="Cue" value={triggerText} bg="#FCE4EC" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="🎵" label="Enjoyment" value={enjoymentText} bg="#FFF9E6" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="👁️" label="Environment Support" value={envText || 'Gym bag packed, Shoes visible'} bg="#F3E5F5" /></div></div>
+      <div style={{ background: colors.background, borderRadius: 16, padding: 22, marginBottom: 20 }}><div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}><SummaryRow icon="🪪" label="The identity you're forming" value={`"${selectedIdentityObj?.statement || "I am someone who takes care of my body"}"`} bg="#E8F5E9" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="🎯" label="Nucleus habit" value={baselineText || "Pause and notice how my body feels"} bg="#FFF3CD" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="⚡" label="Supernova habit" value={capacityText || "45 minute pilates class"} bg="#E3F2FD" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="🔗" label="Cue" value={triggerText} bg="#FCE4EC" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="🎵" label="Enjoyment" value={enjoymentText} bg="#FFF9E6" /><div style={{ height: 1, background: colors.border }} /><SummaryRow icon="👁️" label="Environment Support" value={envText || 'Gym bag packed, Shoes visible'} bg="#F3E5F5" /></div></div>
       <div style={{ background: colors.card, borderRadius: 10, padding: 16, border: `1px solid ${colors.border}`, marginBottom: 20 }}><p style={{ fontFamily: fonts.body, fontSize: 13, fontWeight: 600, color: colors.text, margin: '0 0 10px 0' }}>When should we check in with you?</p><select value={checkInTime} onChange={(e) => onCheckInTimeChange(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `2px solid ${colors.border}`, fontSize: 14, fontFamily: fonts.body, color: colors.text, background: colors.card, cursor: 'pointer' }}><option>6:00 AM</option><option>7:00 AM</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>12:00 PM</option><option>6:00 PM</option><option>8:00 PM</option></select></div>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}><Button variant="secondary" onClick={onBack}>← Back</Button><Button style={{ padding: '16px 36px', fontSize: 16 }}>Start My Journey →</Button></div>
     </Card>
@@ -523,10 +523,10 @@ const OnboardingMockups = () => {
   const Step4 = () => {
     return (
       <Card>
-        <StepHeader step={4} title="What habit counts on low-energy days?" subtitle="" />
+        <StepHeader step={4} title="Design your Nucleus Habit" subtitle="What habit counts on low-energy days?" subtitleStyle={{ fontStyle: 'italic', color: colors.primaryLight }} />
 
         <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
-          On busy or low-energy days, this is the smallest action that still means: "I'm this kind of person." It should be easy to start and easy to finish — something you could finish even on a hard day. (Think: 2-minute guideline, if possible)
+          On busy or low-energy days, this is the smallest action that still means: "I'm this kind of person." It should be easy to start and easy to finish — something you could finish even on a hard day. (Think: 2-minute guideline, if possible) We call this your Nucleus habit.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
@@ -588,7 +588,7 @@ const OnboardingMockups = () => {
   const Step5 = () => {
     return (
       <Card>
-        <StepHeader step={5} title="When you have more energy, how might this habit show up?" subtitle="" />
+        <StepHeader step={5} title="Design your Supernova Habit" subtitle="When you have more energy, how might this habit show up?" subtitleStyle={{ fontStyle: 'italic', color: colors.primaryLight }} />
 
         <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
           This isn't a goal or expectation. It's just how the same identity can express itself when you have more capacity.
@@ -964,14 +964,14 @@ const OnboardingMockups = () => {
             <div style={{ height: 1, background: colors.border }} />
             <SummaryRow
               icon="🎯"
-              label="Baseline habit"
+              label="Nucleus habit"
               value={baselineText || "Pause and notice how my body feels"}
               bg="#FFF3CD"
             />
             <div style={{ height: 1, background: colors.border }} />
             <SummaryRow
               icon="⚡"
-              label="When Circumstances Allow"
+              label="Supernova habit"
               value={capacityText || "45 minute pilates class"}
               bg="#E3F2FD"
             />

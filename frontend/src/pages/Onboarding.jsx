@@ -106,13 +106,13 @@ Step1Component.displayName = 'Step1Component';
 
 const TOTAL_STEPS = 8;
 
-const StepHeader = ({ step, title, subtitle }) => (
+const StepHeader = ({ step, title, subtitle, subtitleStyle }) => (
   <div style={{ marginBottom: 28 }}>
     <p style={{ fontFamily: fonts.body, fontSize: 12, color: colors.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 6px 0' }}>
       Step {step} of {TOTAL_STEPS}
     </p>
     <h2 style={{ fontFamily: fonts.heading, fontSize: 26, fontWeight: 600, color: colors.primary, margin: '0 0 8px 0' }}>{title}</h2>
-    <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0 }}>{subtitle}</p>
+    {subtitle && <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0, ...subtitleStyle }}>{subtitle}</p>}
   </div>
 );
 
@@ -165,13 +165,13 @@ const Step4Component = React.memo(({
   onBack, onContinue, isSaving
 }) => (
   <Card>
-    <StepHeader step={4} title="What habit counts on low-energy days?" subtitle="" />
+    <StepHeader step={4} title="Design your Nucleus Habit" subtitle="What habit counts on low-energy days?" subtitleStyle={{ fontStyle: 'italic', color: colors.primaryLight }} />
     <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
-      On busy or low-energy days, this is the smallest action that still means: "I'm this kind of person." It should be easy to start and easy to finish — something you could finish even on a hard day. (Think: 2-minute guideline, if possible)
+      On busy or low-energy days, this is the smallest action that still means: "I'm this kind of person." It should be easy to start and easy to finish — something you could finish even on a hard day. (Think: 2-minute guideline, if possible) We call this your Nucleus habit.
     </p>
     {isLoadingBaselineOptions ? (
       <div style={{ textAlign: 'center', padding: '32px 20px', marginBottom: 20 }}>
-        <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>Generating short habit options for you...</p>
+        <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>Generating Nucleus habit options for you...</p>
       </div>
     ) : (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
@@ -206,13 +206,13 @@ const Step5Component = React.memo(({
   onBack, onContinue, isSaving
 }) => (
   <Card>
-    <StepHeader step={5} title="When you have more energy, how might this habit show up?" subtitle="" />
+    <StepHeader step={5} title="Design your Supernova Habit" subtitle="When you have more energy, how might this habit show up?" subtitleStyle={{ fontStyle: 'italic', color: colors.primaryLight }} />
     <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
       This isn't a goal or expectation. It's just how the same identity can express itself when you have more capacity.
     </p>
     {isLoadingCapacityOptions ? (
       <div style={{ textAlign: 'center', padding: '32px 20px', marginBottom: 20 }}>
-        <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>Generating full habit options for you...</p>
+        <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted }}>Generating Supernova habit options for you...</p>
       </div>
     ) : (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
@@ -726,10 +726,10 @@ const Onboarding = () => {
   const Step4 = () => {
     return (
       <Card>
-        <StepHeader step={4} title="What habit counts on low-energy days?" subtitle="" />
+        <StepHeader step={4} title="Design your Nucleus Habit" subtitle="What habit counts on low-energy days?" subtitleStyle={{ fontStyle: 'italic', color: colors.primaryLight }} />
 
         <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
-          On busy or low-energy days, this is the smallest action that still means: "I'm this kind of person." It should be easy to start and easy to finish — something you could finish even on a hard day. (Think: 2-minute guideline, if possible)
+          On busy or low-energy days, this is the smallest action that still means: "I'm this kind of person." It should be easy to start and easy to finish — something you could finish even on a hard day. (Think: 2-minute guideline, if possible) We call this your Nucleus habit.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
@@ -791,7 +791,7 @@ const Onboarding = () => {
   const Step5 = () => {
     return (
       <Card>
-        <StepHeader step={5} title="When you have more energy, how might this habit show up?" subtitle="" />
+        <StepHeader step={5} title="Design your Supernova Habit" subtitle="When you have more energy, how might this habit show up?" subtitleStyle={{ fontStyle: 'italic', color: colors.primaryLight }} />
 
         <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
           This isn't a goal or expectation. It's just how the same identity can express itself when you have more capacity.
@@ -1170,14 +1170,14 @@ const Onboarding = () => {
             <div style={{ height: 1, background: colors.border }} />
             <SummaryRow
               icon="🎯"
-              label="Baseline habit"
+              label="Nucleus habit"
               value={baselineText || "Pause and notice how my body feels"}
               bg="#FFF3CD"
             />
             <div style={{ height: 1, background: colors.border }} />
             <SummaryRow
               icon="⚡"
-              label="When Circumstances Allow"
+              label="Supernova habit"
               value={capacityText || "45 minute pilates class"}
               bg="#E3F2FD"
             />
