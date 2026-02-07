@@ -325,6 +325,7 @@ export default function Home() {
                 isHovered={hoveredTile === habit.id}
                 onExpandToggle={setExpandedTile}
                 onHover={setHoveredTile}
+                onDelete={() => loadHabits()}
               />
             </div>
           ))}

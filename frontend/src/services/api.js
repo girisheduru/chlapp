@@ -103,7 +103,9 @@ async function apiRequest(endpoint, options = {}, isRetryAfter401 = false) {
             const retryConfig = { ...config, headers: retryHeaders };
             const retryResponse = await fetch(url, retryConfig);
             if (retryResponse.ok) {
-              return await retryResponse.json();
+              if (retryResponse.status === 204) return undefined;
+              const retryText = await retryResponse.text();
+              return retryText && retryText.trim() ? JSON.parse(retryText) : undefined;
             }
             if (retryResponse.status !== 401) {
               const error = await retryResponse.json().catch(() => ({ message: retryResponse.statusText }));
@@ -135,7 +137,15 @@ async function apiRequest(endpoint, options = {}, isRetryAfter401 = false) {
       throw err;
     }
 
-    return await response.json();
+    // 204 No Content (e.g. DELETE) has no body
+    if (response.status === 204) {
+      return undefined;
+    }
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      return undefined;
+    }
+    return JSON.parse(text);
   } catch (error) {
     if (error?.status !== undefined) {
       console.error('API request failed:', error.status, error.message, error.detail);
@@ -186,9 +196,6 @@ export const reflectionsAPI = {
   /** Get reflection items for the reflect screen (insights, questions, experiment suggestions). Requires habitId. */
   getReflectionItems: (habitId) =>
     apiRequest(`/getReflectionItems?habitId=${encodeURIComponent(habitId)}`),
-  /** Get list of reflection question prompts (all habits). Optional userId for compatibility. */
-  getReflectionInputs: (userId) =>
-    apiRequest(`/getReflectionInputs?userId=${encodeURIComponent(userId)}`),
   /** Prefetch reflection items for all user habits (triggers background generation). */
   prefetchReflections: () =>
     apiRequest('/prefetchReflections', { method: 'POST' }),

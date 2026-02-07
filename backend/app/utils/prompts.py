@@ -121,40 +121,6 @@ Return only the cues, one per line, without numbering or bullets."""
     return prompt
 
 
-def get_reflection_inputs_prompt(habits_data: list, streaks_data: list) -> str:
-    """
-    Generate prompt for reflection inputs based on habits and streaks.
-    
-    Args:
-        habits_data: List of habit documents
-        streaks_data: List of streak documents
-        
-    Returns:
-        Formatted prompt string
-    """
-    habits_summary = "\n".join([
-        f"Habit {i+1}: {habit.get('preferences', {}).get('full_habit', 'N/A')} "
-        f"(Streak: {next((s.get('currentStreak', 0) for s in streaks_data if s.get('habitId') == habit.get('habitId')), 0)})"
-        for i, habit in enumerate(habits_data)
-    ])
-    
-    prompt = f"""Based on the following user's habits and streak data, generate 5-7 thoughtful reflection questions that would help the user reflect on their habit journey.
-
-Habits and Streaks:
-{habits_summary}
-
-Generate reflection questions that:
-1. Help users understand their progress
-2. Identify obstacles and challenges
-3. Discover what's working and what's not
-4. Encourage self-awareness and growth
-5. Are open-ended and thought-provoking
-
-Return only the reflection questions, one per line, without numbering or bullets."""
-
-    return prompt
-
-
 def get_reflection_items_prompt(habit_context: dict, streak_data: dict) -> str:
     """
     Generate prompt for reflection flow items (Screen 1 & 2) from habit plan + streak.

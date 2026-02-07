@@ -194,5 +194,39 @@ class HabitService:
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
 
+    @staticmethod
+    async def delete_habit(
+        db: AsyncIOMotorDatabase,
+        userId: str,
+        habitId: str
+    ) -> bool:
+        """
+        Delete a habit document by user ID and habit ID.
+
+        Args:
+            db: Database instance
+            userId: User ID
+            habitId: Habit ID
+
+        Returns:
+            True if a document was deleted, False if not found
+        """
+        try:
+            result = await db.habits.delete_one({
+                "userId": userId,
+                "habitId": habitId
+            })
+            if result.deleted_count > 0:
+                logger.info(f"Deleted habit - userId: {userId}, habitId: {habitId}")
+                return True
+            logger.warning(f"Habit not found for delete - userId: {userId}, habitId: {habitId}")
+            return False
+        except Exception as e:
+            logger.error(
+                f"Error deleting habit - userId: {userId}, habitId: {habitId}, error: {str(e)}"
+            )
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
+
 
 habit_service = HabitService()

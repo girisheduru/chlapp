@@ -22,6 +22,7 @@ from app.models.habit import (
 )
 from app.services.habit_service import habit_service
 from app.services.llm_service import llm_service
+from app.services.reflection_cache_service import reflection_cache_service
 from app.utils.prompts import (
     get_identity_generation_prompt,
     get_short_habit_options_prompt,
@@ -63,6 +64,42 @@ async def list_habits(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error listing habits: {str(e)}"
+        )
+
+
+@router.delete(
+    "/habits/{habitId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a habit",
+    description="Delete a habit and its related streak, reflection cache, and reflection answers. Uses authenticated user's uid.",
+)
+async def delete_habit(
+    habitId: str,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Delete the habit for the current user. Cascades to streaks, reflection cache, and reflection answers.
+    """
+    try:
+        deleted = await habit_service.delete_habit(db, current_user.uid, habitId)
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Habit not found for userId={current_user.uid}, habitId={habitId}",
+            )
+        await db.streaks.delete_many({"userId": current_user.uid, "habitId": habitId})
+        await reflection_cache_service.invalidate_cache(db, current_user.uid, habitId)
+        await db.reflections.delete_many({"userId": current_user.uid, "habitId": habitId})
+        logger.info(f"Deleted habit and related data - userId: {current_user.uid}, habitId: {habitId}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting habit: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting habit: {str(e)}",
         )
 
 

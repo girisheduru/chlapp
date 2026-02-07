@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { MiniStoneJar } from './MiniStoneJar';
 import { SummaryRow } from './SummaryRow';
+import { Button } from './Button';
+import { habitsAPI } from '../services/api';
 
 /**
  * Habit tile for Home screen: identity, baseline, stats (stones, streak, done), Check in / Reflect, expandable plan.
  */
-export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHover }) {
+export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHover, onDelete }) {
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const isCheckedToday = habit.lastCheckIn?.done ?? false;
 
   const formatFunElements = () => {
@@ -34,6 +40,125 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
     navigate('/reflect', { state: { fromHabitTile: true, habitId: habit.id, userId: habit.userId, habit } });
   };
 
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    setDeleteError(null);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await habitsAPI.delete(habit.id);
+      setShowDeleteConfirm(false);
+      onDelete?.(habit.id);
+    } catch (err) {
+      setDeleteError(err?.message || 'Could not delete habit. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setDeleteError(null);
+  };
+
+  const deleteConfirmModal = showDeleteConfirm && (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-habit-title"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 10000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+        background: 'rgba(61, 50, 41, 0.5)',
+        boxSizing: 'border-box',
+      }}
+      onClick={handleDeleteCancel}
+    >
+      <div
+        style={{
+          background: colors.card,
+          borderRadius: 20,
+          padding: 28,
+          maxWidth: 360,
+          width: '100%',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+          border: `1px solid ${colors.border}`,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3
+          id="delete-habit-title"
+          style={{
+            fontFamily: fonts.heading,
+            fontSize: 18,
+            fontWeight: 600,
+            color: colors.text,
+            margin: '0 0 12px 0',
+            lineHeight: 1.4,
+          }}
+        >
+          Remove this habit?
+        </h3>
+        <p
+          style={{
+            fontFamily: fonts.body,
+            fontSize: 14,
+            color: colors.textMuted,
+            margin: '0 0 24px 0',
+            lineHeight: 1.5,
+          }}
+        >
+          Your streak and reflection history for this habit will be deleted. This can't be undone.
+        </p>
+        {deleteError && (
+          <p
+            style={{
+              fontFamily: fonts.body,
+              fontSize: 13,
+              color: '#c62828',
+              margin: '0 0 16px 0',
+            }}
+          >
+            {deleteError}
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+          <Button variant="secondary" onClick={handleDeleteCancel} disabled={deleting}>
+            Cancel
+          </Button>
+          <button
+            type="button"
+            onClick={handleDeleteConfirm}
+            disabled={deleting}
+            style={{
+              padding: '12px 24px',
+              borderRadius: 12,
+              border: 'none',
+              fontFamily: fonts.body,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: deleting ? 'not-allowed' : 'pointer',
+              background: '#c62828',
+              color: '#fff',
+              opacity: deleting ? 0.7 : 1,
+            }}
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div
       onMouseEnter={() => onHover?.(habit.id)}
@@ -50,18 +175,23 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
       }}
     >
       <div style={{ padding: 20 }}>
-        <h3
-          style={{
-            fontFamily: fonts.heading,
-            fontSize: 16,
-            fontWeight: 600,
-            color: colors.text,
-            margin: '0 0 10px 0',
-            lineHeight: 1.4,
-          }}
-        >
-          "{habit.identity}"
-        </h3>
+        <div style={{ marginBottom: 10 }}>
+          <h3
+            style={{
+              fontFamily: fonts.heading,
+              fontSize: 16,
+              fontWeight: 600,
+              color: colors.text,
+              margin: 0,
+              lineHeight: 1.4,
+              minWidth: 0,
+            }}
+          >
+            "{habit.identity}"
+          </h3>
+        </div>
+
+        {typeof document !== 'undefined' && createPortal(deleteConfirmModal, document.body)}
 
         <p
           style={{
@@ -145,7 +275,7 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <button
             type="button"
             onClick={handleCheckIn}
@@ -193,6 +323,31 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
             <span>🔮</span>
             Reflect
           </button>
+          {onDelete && (
+            <button
+              type="button"
+              onClick={handleDeleteClick}
+              title="Delete habit"
+              style={{
+                flexShrink: 0,
+                width: 40,
+                height: 40,
+                padding: 0,
+                border: `2px solid ${colors.border}`,
+                borderRadius: 10,
+                background: 'transparent',
+                color: colors.textMuted,
+                fontSize: 16,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              🗑
+            </button>
+          )}
         </div>
 
         <button
