@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 
 /**
@@ -34,32 +35,42 @@ export function LoginGate({ onSignIn }) {
           border: `1px solid ${colors.border}`,
         }}
       >
-        <div
+        <Link
+          to="/"
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: 16,
-            background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 32,
-            margin: '0 auto 24px',
+            display: 'inline-block',
+            textDecoration: 'none',
+            color: 'inherit',
+            cursor: 'pointer',
           }}
         >
-          🌱
-        </div>
-        <h1
-          style={{
-            fontFamily: fonts.heading,
-            fontSize: 24,
-            fontWeight: 600,
-            color: colors.text,
-            margin: '0 0 8px 0',
-          }}
-        >
-          Atomic
-        </h1>
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 16,
+              background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 32,
+              margin: '0 auto 24px',
+            }}
+          >
+            🌱
+          </div>
+          <h1
+            style={{
+              fontFamily: fonts.heading,
+              fontSize: 24,
+              fontWeight: 600,
+              color: colors.text,
+              margin: '0 0 8px 0',
+            }}
+          >
+            Atomic
+          </h1>
+        </Link>
         <p
           style={{
             fontFamily: fonts.body,

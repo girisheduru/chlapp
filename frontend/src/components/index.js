@@ -17,3 +17,4 @@ export { HeaderJarIcon } from './HeaderJarIcon';
 export { HabitTile } from './HabitTile';
 export { AddHabitButton } from './AddHabitButton';
 export { LoginGate } from './LoginGate';
+export { UserMenu } from './UserMenu';

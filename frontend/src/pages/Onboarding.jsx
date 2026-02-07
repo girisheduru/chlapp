@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { 
   identityOptions, 
@@ -10,7 +10,7 @@ import {
   environmentOptions,
   checkInTimeOptions 
 } from '../data/onboardingData';
-import { Button, Card, SelectableOption, InfoBox, Quote, ProgressBar } from '../components';
+import { Button, Card, SelectableOption, InfoBox, Quote, ProgressBar, UserMenu } from '../components';
 import { habitsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { getOrCreateUserAndHabitIds } from '../utils/userStorage';
@@ -1362,7 +1362,17 @@ const Onboarding = () => {
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link
+            to="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              textDecoration: 'none',
+              color: 'inherit',
+              cursor: 'pointer',
+            }}
+          >
             <div
               style={{
                 width: 34,
@@ -1378,38 +1388,41 @@ const Onboarding = () => {
               🌱
             </div>
             <span style={{ fontFamily: fonts.heading, fontSize: 17, fontWeight: 600, color: colors.primary }}>Atomic</span>
-          </div>
+          </Link>
 
-          {currentStep > 1 && (
-            <button
-              onClick={() => {
-                setCurrentStep(1);
-                setGoalInput('');
-                setSelectedIdentity('');
-                setSelectedFunOptions([]);
-                setCustomFun('');
-                setBaselineHabit('');
-                setCustomBaselineHabit('');
-                setCapacityExpression('');
-                setCustomCapacityExpression('');
-                setSelectedAnchor('');
-                setCustomAnchor('');
-                setSelectedEnvironment([]);
-                setCustomEnvironment('');
-                setGeneratedIdentities([]); // Reset generated identities
-              }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                fontFamily: fonts.body,
-                fontSize: 13,
-                color: colors.textLight,
-                cursor: 'pointer',
-              }}
-            >
-              Start over
-            </button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {currentStep > 1 && (
+              <button
+                onClick={() => {
+                  setCurrentStep(1);
+                  setGoalInput('');
+                  setSelectedIdentity('');
+                  setSelectedFunOptions([]);
+                  setCustomFun('');
+                  setBaselineHabit('');
+                  setCustomBaselineHabit('');
+                  setCapacityExpression('');
+                  setCustomCapacityExpression('');
+                  setSelectedAnchor('');
+                  setCustomAnchor('');
+                  setSelectedEnvironment([]);
+                  setCustomEnvironment('');
+                  setGeneratedIdentities([]); // Reset generated identities
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontFamily: fonts.body,
+                  fontSize: 13,
+                  color: colors.textLight,
+                  cursor: 'pointer',
+                }}
+              >
+                Start over
+              </button>
+            )}
+            <UserMenu />
+          </div>
         </div>
 
         <ProgressBar currentStep={currentStep} totalSteps={totalSteps} />

@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { reflectionsAPI } from '../services/api';
+import { UserMenu } from '../components';
 import { parseUtcDate } from '../utils/dateUtils';
 
 /**
@@ -1019,7 +1020,17 @@ export default function Reflection() {
           </div>
         )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link
+            to="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              textDecoration: 'none',
+              color: 'inherit',
+              cursor: 'pointer',
+            }}
+          >
             <div style={{
               width: 34,
               height: 34,
@@ -1031,20 +1042,23 @@ export default function Reflection() {
               fontSize: 16,
             }}>🌱</div>
             <span style={{ fontFamily: fonts.heading, fontSize: 17, fontWeight: 600, color: colors.primary }}>Atomic</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {[1, 2, 3].map((step) => (
-              <div
-                key={step}
-                style={{
-                  width: step === currentScreen ? 20 : 8,
-                  height: 8,
-                  borderRadius: 4,
-                  background: step <= currentScreen ? colors.primaryLight : colors.border,
-                  transition: 'all 0.3s ease',
-                }}
-              />
-            ))}
+          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {[1, 2, 3].map((step) => (
+                <div
+                  key={step}
+                  style={{
+                    width: step === currentScreen ? 20 : 8,
+                    height: 8,
+                    borderRadius: 4,
+                    background: step <= currentScreen ? colors.primaryLight : colors.border,
+                    transition: 'all 0.3s ease',
+                  }}
+                />
+              ))}
+            </div>
+            <UserMenu />
           </div>
         </div>
         {renderScreen()}

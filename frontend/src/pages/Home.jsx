@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { HeaderJarIcon } from '../components/HeaderJarIcon';
 import { HabitTile } from '../components/HabitTile';
-import { AddHabitButton } from '../components/AddHabitButton';
+import { AddHabitButton, UserMenu } from '../components';
 import { useAuth } from '../contexts/AuthContext';
-import { getOrCreateUserAndHabitIds } from '../utils/userStorage';
+import { getOrCreateUserAndHabitIds, createNewHabitId } from '../utils/userStorage';
 import { parseUtcDate } from '../utils/dateUtils';
 import { habitsAPI, streaksAPI, reflectionsAPI } from '../services/api';
 
@@ -56,6 +57,7 @@ function mapToHabitTile(habitFromApi, streakFromApi, habitId, index) {
 }
 
 export default function Home() {
+  const navigate = useNavigate();
   const { user: authUser, loading: authLoading, getIdToken } = useAuth();
   const [userId, setUserId] = useState(null);
   const [userHabits, setUserHabits] = useState([]);
@@ -221,7 +223,17 @@ export default function Home() {
 
       <div style={{ maxWidth: 420, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link
+            to="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              textDecoration: 'none',
+              color: 'inherit',
+              cursor: 'pointer',
+            }}
+          >
             <div
               style={{
                 width: 38,
@@ -240,23 +252,50 @@ export default function Home() {
             <span style={{ fontFamily: fonts.heading, fontSize: 19, fontWeight: 600, color: colors.primary }}>
               Atomic
             </span>
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '6px 14px 6px 8px',
-              background: colors.card,
-              borderRadius: 20,
-              border: `1px solid ${colors.border}`,
-              boxShadow: '0 2px 8px rgba(92, 75, 58, 0.06)',
-            }}
-          >
-            <HeaderJarIcon />
-            <span style={{ fontFamily: fonts.mono, fontSize: 14, fontWeight: 600, color: colors.primary }}>
-              {totalStones}
-            </span>
+          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 14px 6px 8px',
+                background: colors.card,
+                borderRadius: 20,
+                border: `1px solid ${colors.border}`,
+                boxShadow: '0 2px 8px rgba(92, 75, 58, 0.06)',
+              }}
+            >
+              <HeaderJarIcon />
+              <span style={{ fontFamily: fonts.mono, fontSize: 14, fontWeight: 600, color: colors.primary }}>
+                {totalStones}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate(`/onboarding?habitId=${encodeURIComponent(createNewHabitId())}`)}
+              aria-label="Add habit"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                borderRadius: 20,
+                border: `2px solid ${colors.primaryLight}`,
+                background: 'rgba(74, 124, 89, 0.08)',
+                color: colors.primary,
+                fontSize: 14,
+                fontWeight: 600,
+                fontFamily: fonts.body,
+                lineHeight: 1,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
+              Add habit
+            </button>
+            <UserMenu />
           </div>
         </div>
 

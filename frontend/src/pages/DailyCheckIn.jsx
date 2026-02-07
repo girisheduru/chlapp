@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
 import { animations } from '../constants/animations';
 import { obstacleOptions, helperOptions, defaultUserData } from '../data/checkinData';
-import { Button, Card, ActionOption, SelectChip, StoneJar, TodaysStone, Confetti, StreakDisplay } from '../components';
+import { Button, Card, ActionOption, SelectChip, StoneJar, TodaysStone, Confetti, StreakDisplay, UserMenu } from '../components';
 import { streaksAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { getOrCreateUserAndHabitIds } from '../utils/userStorage';
@@ -291,14 +291,6 @@ const DailyCheckIn = () => {
             margin: '0 0 4px 0',
           }}>
             What did you do today?
-          </p>
-          <p style={{
-            fontFamily: fonts.body,
-            fontSize: 12,
-            color: colors.textLight,
-            margin: '0 0 16px 0',
-          }}>
-            Single select — customized from onboarding
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -867,7 +859,17 @@ const DailyCheckIn = () => {
       <div style={{ maxWidth: 420, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link
+            to="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              textDecoration: 'none',
+              color: 'inherit',
+              cursor: 'pointer',
+            }}
+          >
             <div style={{
               width: 36,
               height: 36,
@@ -883,7 +885,8 @@ const DailyCheckIn = () => {
             <span style={{ fontFamily: fonts.heading, fontSize: 18, fontWeight: 600, color: colors.primary }}>
               Atomic
             </span>
-          </div>
+          </Link>
+          <UserMenu />
         </div>
 
         {/* Demo Controls */}
