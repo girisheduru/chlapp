@@ -1087,7 +1087,7 @@ const OnboardingMockups = () => {
             >
               🌱
             </div>
-            <span style={{ fontFamily: fonts.heading, fontSize: 17, fontWeight: 600, color: colors.primary }}>Habit Lab</span>
+            <span style={{ fontFamily: fonts.heading, fontSize: 17, fontWeight: 600, color: colors.primary }}>Clear Habit Lab</span>
           </div>
 
           {currentStep > 1 && (

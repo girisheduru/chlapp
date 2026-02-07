@@ -932,7 +932,7 @@ export default function Reflection() {
               justifyContent: 'center',
               fontSize: 16,
             }}>🌱</div>
-            <span style={{ fontFamily: fonts.heading, fontSize: 17, fontWeight: 600, color: colors.primary }}>Habit Lab</span>
+            <span style={{ fontFamily: fonts.heading, fontSize: 17, fontWeight: 600, color: colors.primary }}>Clear Habit Lab</span>
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

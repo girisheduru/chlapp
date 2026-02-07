@@ -20,6 +20,44 @@ CACHE_COLLECTION = "reflection_cache"
 # Cache TTL in seconds (1 hour - refresh if older)
 CACHE_TTL_SECONDS = 3600
 
+# Fallback when both agent and direct LLM fail (e.g. empty response). Keeps Reflection UI working.
+DEFAULT_REFLECTION_DATA = {
+    "insights": [
+        {
+            "emoji": "💪",
+            "text": "Small steps add up. Keep showing up.",
+            "highlight": "You're building the habit.",
+        }
+    ],
+    "reflectionQuestions": {
+        "question1": "What helped you show up — even a little? (optional)",
+        "question2": "On days it didn't happen, what made starting feel harder? (optional)",
+    },
+    "experimentSuggestions": [
+        {
+            "type": "anchor",
+            "title": "Strengthen your anchor",
+            "currentValue": "Your current cue",
+            "suggestedText": "Try tying your habit to a specific time or existing routine.",
+            "why": "A clear trigger makes starting easier.",
+        },
+        {
+            "type": "environment",
+            "title": "Prep your environment",
+            "currentValue": "Your current setup",
+            "suggestedText": "Make what you need visible and easy to reach.",
+            "why": "Environment shapes behavior.",
+        },
+        {
+            "type": "enjoyment",
+            "title": "Make it more enjoyable",
+            "currentValue": "What you enjoy",
+            "suggestedText": "Pair your habit with something you look forward to.",
+            "why": "Enjoyment helps habits stick.",
+        },
+    ],
+}
+
 
 class ReflectionCacheService:
     """Service for caching and retrieving reflection items."""
@@ -141,7 +179,7 @@ class ReflectionCacheService:
                 "lastCheckInDate": str(streak.lastCheckInDate) if streak.lastCheckInDate else None,
             }
 
-            # Try agent first, then fall back to direct LLM
+            # Try agent first, then fall back to direct LLM, then to default payload
             data = None
             try:
                 from app.services.reflection_agent_service import (
@@ -151,16 +189,23 @@ class ReflectionCacheService:
                 logger.info(f"Background reflection generated via agent for user={user_id}, habit={habit_id}")
             except (ImportError, ValueError, Exception) as agent_err:
                 logger.debug(f"Agent unavailable, falling back to direct LLM: {agent_err}")
-                from app.services.llm_service import llm_service
-                from app.utils.prompts import get_reflection_items_prompt
-                prompt = get_reflection_items_prompt(habit_context, streak_data)
-                data = await llm_service.generate_json(prompt)
-                logger.info(f"Background reflection generated via direct LLM for user={user_id}, habit={habit_id}")
+                try:
+                    from app.services.llm_service import llm_service
+                    from app.utils.prompts import get_reflection_items_prompt
+                    prompt = get_reflection_items_prompt(habit_context, streak_data)
+                    data = await llm_service.generate_json(prompt)
+                    logger.info(f"Background reflection generated via direct LLM for user={user_id}, habit={habit_id}")
+                except Exception as llm_err:
+                    logger.warning(
+                        "Direct LLM reflection also failed (%s); using default reflection payload",
+                        llm_err,
+                    )
+                    data = DEFAULT_REFLECTION_DATA.copy()
 
             if data:
                 await self.save_cached_reflection(db, user_id, habit_id, data)
                 return data
-            
+
             return None
 
         except Exception as e:

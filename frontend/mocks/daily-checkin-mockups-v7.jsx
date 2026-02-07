@@ -1232,7 +1232,7 @@ const DailyCheckInMockupsV5 = () => {
               🌱
             </div>
             <span style={{ fontFamily: fonts.heading, fontSize: 18, fontWeight: 600, color: colors.primary }}>
-              Habit Lab
+              Clear Habit Lab
             </span>
           </div>
         </div>

@@ -32,7 +32,7 @@ const iconCircleStyle = (bg) => ({
 });
 
 /**
- * About page: ideology and design behind Habit Lab. Inspired by James Clear's public work (speeches, blogs, podcasts).
+ * About page: ideology and design behind Clear Habit Lab. Inspired by James Clear's public work (speeches, blogs, podcasts).
  */
 export default function About() {
   const { user } = useAuth();
@@ -101,7 +101,7 @@ export default function About() {
             margin: '0 0 10px 0',
           }}
         >
-          Habit Lab
+          Clear Habit Lab
         </h1>
         <p
           style={{
@@ -145,7 +145,7 @@ export default function About() {
           📖 Inspired by his work
         </h2>
         <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, margin: '0 0 16px 0', lineHeight: 1.5 }}>
-          Habit Lab draws on ideas from James Clear’s speeches, blogs, and podcasts. We help you apply identity-based habits, tiny steps, cues, and reflection — so small changes add up to lasting results. This is a personal side project, not for commercial use.
+          Clear Habit Lab draws on ideas from James Clear’s speeches, blogs, and podcasts. We help you apply identity-based habits, tiny steps, cues, and reflection — so small changes add up to lasting results. This is a personal side project, not for commercial use.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ ...iconCircleStyle(colors.successLight), margin: '0 auto' }}>🧭</span>

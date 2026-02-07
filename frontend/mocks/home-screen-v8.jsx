@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 
-// Habit Lab - Home Screen V8
+// Clear Habit Lab - Home Screen V8
 // Updates:
 // - Mini stone jar icon in header (matches tile jars)
 
@@ -704,7 +704,7 @@ const HomeScreenV8 = () => {
               fontWeight: 600, 
               color: colors.primary 
             }}>
-              Habit Lab
+              Clear Habit Lab
             </span>
           </div>
 

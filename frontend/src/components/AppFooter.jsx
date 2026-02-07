@@ -36,7 +36,7 @@ export function AppFooter() {
             fontWeight: 500,
           }}
         >
-          About Habit Lab
+          About Clear Habit Lab
         </Link>
       </div>
     </footer>
