@@ -99,7 +99,8 @@ class ReflectionAnswerCreate(BaseModel):
     identityAlignmentValue: Optional[int] = Field(None, ge=0, le=100, description="Identity alignment slider value (0-100)")
     identityReflection: Optional[str] = Field(None, description="Free-text identity reflection")
     selectedExperiment: Optional[str] = Field(None, description="Selected experiment type (anchor/environment/enjoyment/maintain)")
-    experimentText: Optional[str] = Field(None, description="User-edited experiment text")
+    experimentText: Optional[str] = Field(None, description="User-edited experiment text for selected experiment (legacy)")
+    experimentTexts: Optional[dict] = Field(None, description="All experiment texts keyed by type (anchor/environment/enjoyment)")
     weekRange: Optional[str] = Field(None, description="Week range string (e.g. 'Jan 27 – Feb 2')")
 
 
@@ -119,5 +120,6 @@ class ReflectionAnswerResponse(BaseModel):
     identityReflection: Optional[str] = None
     selectedExperiment: Optional[str] = None
     experimentText: Optional[str] = None
+    experimentTexts: Optional[dict] = None
     weekRange: Optional[str] = None
     createdAt: Optional[str] = None

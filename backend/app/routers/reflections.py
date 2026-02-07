@@ -282,6 +282,13 @@ async def save_reflection_answers(
 
         now = datetime.now(timezone.utc)
 
+        # Determine the experiment text for the selected experiment
+        # Use experimentTexts dict if available, fall back to legacy experimentText
+        all_texts = data.experimentTexts or {}
+        selected_text = data.experimentText
+        if data.selectedExperiment and data.selectedExperiment in all_texts:
+            selected_text = all_texts[data.selectedExperiment]
+
         # 1. Save reflection answers to reflections collection
         reflection_doc = {
             "userId": uid,
@@ -291,7 +298,8 @@ async def save_reflection_answers(
             "identityAlignmentValue": data.identityAlignmentValue,
             "identityReflection": data.identityReflection,
             "selectedExperiment": data.selectedExperiment,
-            "experimentText": data.experimentText,
+            "experimentText": selected_text,
+            "experimentTexts": all_texts,
             "weekRange": data.weekRange,
             "createdAt": now.isoformat(),
         }
@@ -301,7 +309,7 @@ async def save_reflection_answers(
         logger.info(f"Saved reflection answers - _id: {reflection_doc['_id']}")
 
         # 2. Update habit preferences if an experiment was selected (not 'maintain')
-        if data.selectedExperiment and data.selectedExperiment != "maintain" and data.experimentText:
+        if data.selectedExperiment and data.selectedExperiment != "maintain" and selected_text:
             # Map experiment type to habit preference field
             field_map = {
                 "anchor": "preferences.habit_stack",
@@ -314,7 +322,7 @@ async def save_reflection_answers(
                     {"userId": uid, "habitId": data.habitId},
                     {
                         "$set": {
-                            pref_field: data.experimentText,
+                            pref_field: selected_text,
                             "updated_at": now,
                         }
                     },

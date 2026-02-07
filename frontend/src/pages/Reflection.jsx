@@ -554,7 +554,11 @@ export default function Reflection() {
             if (saved.identityAlignmentValue != null) setAlignmentValue(saved.identityAlignmentValue);
             if (saved.identityReflection) setIdentityReflection(saved.identityReflection);
             if (saved.selectedExperiment) setSelectedExperiment(saved.selectedExperiment);
-            if (saved.experimentText && saved.selectedExperiment && saved.selectedExperiment !== 'maintain') {
+            // Restore all experiment texts (not just the selected one)
+            if (saved.experimentTexts && typeof saved.experimentTexts === 'object') {
+              setExperimentTexts((prev) => ({ ...prev, ...saved.experimentTexts }));
+            } else if (saved.experimentText && saved.selectedExperiment && saved.selectedExperiment !== 'maintain') {
+              // Legacy fallback: only had single experimentText
               setExperimentTexts((prev) => ({ ...prev, [saved.selectedExperiment]: saved.experimentText }));
             }
           }
@@ -863,6 +867,13 @@ export default function Reflection() {
   const handleStartMyWeek = async () => {
     setSaving(true);
     try {
+      // Build all experiment texts (so they persist across sessions)
+      const allTexts = {};
+      ['anchor', 'environment', 'enjoyment'].forEach((id) => {
+        const text = getExperimentText(id);
+        if (text) allTexts[id] = text;
+      });
+
       await reflectionsAPI.saveReflectionAnswers({
         habitId: habitId,
         reflectionQ1: reflectionQ1 || null,
@@ -873,6 +884,7 @@ export default function Reflection() {
         experimentText: selectedExperiment && selectedExperiment !== 'maintain'
           ? getExperimentText(selectedExperiment)
           : null,
+        experimentTexts: allTexts,
         weekRange: weekData.weekRange || null,
       });
     } catch (err) {
