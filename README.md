@@ -37,8 +37,13 @@ chlapp/
 │   ├── start-backend.sh
 │   ├── start-frontend.sh
 │   └── start-all.sh
+├── docs/            # Diagrams and overviews
+│   ├── product-overview-diagram.md   # Product/business: user flows, structure
+│   └── developer-onboarding-diagram.md # Developers: code structure, request flow
 └── README.md        # This file
 ```
+
+**Diagrams:** See [`docs/product-overview-diagram.md`](docs/product-overview-diagram.md) for a product/business overview and user flows, and [`docs/developer-onboarding-diagram.md`](docs/developer-onboarding-diagram.md) for developer onboarding (code structure and request flow).
 
 ## Features
 

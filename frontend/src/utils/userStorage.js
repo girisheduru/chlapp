@@ -42,22 +42,6 @@ export const getOrCreateUserAndHabitIds = (firebaseUid = null) => {
 };
 
 /**
- * Get user ID from localStorage
- * @returns {string|null}
- */
-export const getUserId = () => {
-  return localStorage.getItem('chl_userId');
-};
-
-/**
- * Get habit ID from localStorage
- * @returns {string|null}
- */
-export const getHabitId = () => {
-  return localStorage.getItem('chl_habitId');
-};
-
-/**
  * Clear user and habit IDs from localStorage
  */
 export const clearUserAndHabitIds = () => {
