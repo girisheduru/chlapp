@@ -3,6 +3,8 @@
 **Audience:** Product owners, business owners, stakeholders  
 **Purpose:** Understand the product structure and user flows without technical detail.
 
+*Visual style matches the app: warm cream background, forest green primary (#2D5A45, #4A7C59), soft success greens, and earthy accents.*
+
 ---
 
 ## 1. What the product does (high level)
@@ -33,6 +35,13 @@ flowchart LR
   E --> D
   D --> H
   H --> E
+
+  style User fill:#F5F2ED,stroke:#E8E4DF,color:#3D3229
+  style Product fill:#FEFDFB,stroke:#E8E4DF,color:#3D3229
+  style E fill:#4A7C59,stroke:#2D5A45,color:#FEFDFB
+  style F fill:#FFF9E6,stroke:#E8E4DF,color:#3D3229
+  style G fill:#E8F5E9,stroke:#C8E6C9,color:#3D3229
+  style H fill:#C8E6C9,stroke:#4A7C59,color:#3D3229
 ```
 
 - **Dashboard (Home):** See all habits, streaks, stones, and quick access to check-in or reflect.
@@ -64,10 +73,17 @@ flowchart TB
   Reflect --> ReflectionScreen[Reflection: insights & experiments]
   ReflectionScreen --> Home
 
-  style Home fill:#e8f5e9
-  style Onboarding fill:#fff3cd
-  style CheckInScreen fill:#e3f2fd
-  style ReflectionScreen fill:#fce4ec
+  style Start fill:#F5F2ED,stroke:#E8E4DF,color:#3D3229
+  style Login fill:#FEFDFB,stroke:#E8E4DF,color:#3D3229
+  style LoginScreen fill:#FFF9E6,stroke:#E8E4DF,color:#3D3229
+  style Home fill:#4A7C59,stroke:#2D5A45,color:#FEFDFB
+  style AddHabit fill:#FEFDFB,stroke:#E8E4DF,color:#3D3229
+  style Onboarding fill:#FFF9E6,stroke:#E8E4DF,color:#3D3229
+  style CheckIn fill:#FEFDFB,stroke:#E8E4DF,color:#3D3229
+  style CheckInScreen fill:#E8F5E9,stroke:#C8E6C9,color:#3D3229
+  style StoneAdded fill:#C8E6C9,stroke:#4A7C59,color:#3D3229
+  style Reflect fill:#FEFDFB,stroke:#E8E4DF,color:#3D3229
+  style ReflectionScreen fill:#C8E6C9,stroke:#4A7C59,color:#3D3229
 ```
 
 - **First time:** Login → Home → “Add a habit” → Onboarding → back to Home.
@@ -93,6 +109,13 @@ flowchart LR
   App <-->|"Save & load habits, check-ins, reflections"| API
   API <--> DB
   API <-->|"Generate options & insights"| AI
+
+  style UserDevice fill:#F5F2ED,stroke:#E8E4DF,color:#3D3229
+  style OurSystems fill:#FEFDFB,stroke:#E8E4DF,color:#3D3229
+  style App fill:#FEFDFB,stroke:#4A7C59,color:#3D3229
+  style API fill:#4A7C59,stroke:#2D5A45,color:#FEFDFB
+  style DB fill:#E8F5E9,stroke:#4A7C59,color:#3D3229
+  style AI fill:#FFF9E6,stroke:#E8E4DF,color:#3D3229
 ```
 
 - **App:** What the user sees and taps (dashboard, onboarding, check-in, reflection).
@@ -122,6 +145,22 @@ flowchart LR
 - **Stones & jar:** One stone per successful check-in; visual progress.
 - **Streak:** Consecutive days with at least one check-in.
 - **Reflection:** Weekly insights and experiment suggestions, grounded in Atomic Habits–style ideas.
+
+---
+
+## Color reference (matches the app)
+
+| Use in diagram | Hex | App token |
+|----------------|-----|-----------|
+| Warm background | `#F5F2ED` | background |
+| Card / surface | `#FEFDFB` | card |
+| Primary green | `#4A7C59` | primaryLight |
+| Dark green | `#2D5A45` | primary |
+| Success light | `#E8F5E9` | successLight |
+| Success medium | `#C8E6C9` | successMedium / baseline |
+| Accent / onboarding | `#FFF9E6` | accent |
+| Border | `#E8E4DF` | border |
+| Text | `#3D3229` | text |
 
 ---
 
