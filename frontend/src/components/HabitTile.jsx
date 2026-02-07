@@ -310,7 +310,7 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
               minWidth: 0,
             }}
           >
-            "{habit.identity}"
+            {habit.identity}
           </h3>
         </div>
 
@@ -553,7 +553,7 @@ export function HabitTile({ habit, isExpanded, isHovered, onExpandToggle, onHove
                   <SummaryRow
                     icon={row.icon}
                     label={row.label}
-                    value={row.key === 'identity' ? `"${getPreferenceDisplayValue(row.key)}"` : getPreferenceDisplayValue(row.key)}
+                    value={getPreferenceDisplayValue(row.key)}
                     bg={row.bg}
                   />
                 </div>

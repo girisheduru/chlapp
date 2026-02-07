@@ -656,7 +656,7 @@ export default function Reflection() {
             marginBottom: 12,
             border: '1px solid rgba(74, 124, 89, 0.2)',
           }}>
-            <p style={{ fontFamily: fonts.heading, fontSize: 14, fontWeight: 500, color: colors.primary, margin: 0, fontStyle: 'italic', lineHeight: 1.4 }}>"{userData.identity}"</p>
+            <p style={{ fontFamily: fonts.heading, fontSize: 14, fontWeight: 500, color: colors.primary, margin: 0, fontStyle: 'italic', lineHeight: 1.4 }}>{userData.identity}</p>
           </div>
           <p style={{ fontFamily: fonts.body, fontSize: 13, color: colors.text, margin: '0 0 4px 0' }}>This week, acting in line with this identity felt...</p>
           <AlignmentSlider value={alignmentValue} onChange={setAlignmentValue} />
@@ -856,7 +856,7 @@ export default function Reflection() {
         textAlign: 'center',
       }}>
         <p style={{ fontFamily: fonts.body, fontSize: 10, color: '#5C7A6B', textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 4px 0' }}>Remember who you're becoming</p>
-        <p style={{ fontFamily: fonts.heading, fontSize: 14, fontWeight: 500, color: colors.primary, margin: 0, fontStyle: 'italic' }}>"{userData.identity}"</p>
+        <p style={{ fontFamily: fonts.heading, fontSize: 14, fontWeight: 500, color: colors.primary, margin: 0, fontStyle: 'italic' }}>{userData.identity}</p>
       </div>
       <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
         <p style={{ fontFamily: fonts.body, fontSize: 14, color: colors.textMuted, margin: 0, lineHeight: 1.6 }}>

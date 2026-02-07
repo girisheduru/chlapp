@@ -264,7 +264,7 @@ const DailyCheckIn = () => {
             margin: 0,
             lineHeight: 1.4,
           }}>
-            "{displayIdentity}"
+            {displayIdentity}
           </p>
         </div>
 
@@ -690,7 +690,7 @@ const DailyCheckIn = () => {
             textAlign: 'center',
             fontStyle: 'italic',
           }}>
-            "{displayIdentity}"
+            {displayIdentity}
           </p>
         </div>
 
@@ -759,7 +759,7 @@ const DailyCheckIn = () => {
           textAlign: 'center',
           fontStyle: 'italic',
         }}>
-          "{displayIdentity}"
+          {displayIdentity}
         </p>
       </div>
 

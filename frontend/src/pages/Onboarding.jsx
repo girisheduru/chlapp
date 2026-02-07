@@ -1164,7 +1164,7 @@ const Onboarding = () => {
             <SummaryRow
               icon="🪪"
               label="The identity you're forming"
-              value={`"${p?.identity ?? selectedIdentityObj?.statement ?? "I am someone who takes care of my body"}"`}
+              value={p?.identity ?? selectedIdentityObj?.statement ?? "I am someone who takes care of my body"}
               bg="#E8F5E9"
             />
             <div style={{ height: 1, background: colors.border }} />
