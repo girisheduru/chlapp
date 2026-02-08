@@ -4,7 +4,7 @@ Service layer for streak-related business logic.
 import logging
 import traceback
 from typing import Optional
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.models.streak import StreakResponse, StreakUpdateRequest
@@ -19,6 +19,37 @@ def _ensure_utc(dt):
     if isinstance(dt, datetime) and dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt
+
+
+def _recalculate_streak_from_history(check_in_history: list[str]) -> tuple[int, int]:
+    """
+    Recalculate currentStreak and longestStreak from the full checkInHistory.
+    Returns (currentStreak, longestStreak).
+    """
+    if not check_in_history:
+        return 0, 0
+
+    dates = sorted(set(date.fromisoformat(d) for d in check_in_history))
+
+    # Longest streak: scan forward
+    longest = 1
+    current = 1
+    for i in range(1, len(dates)):
+        if (dates[i] - dates[i - 1]).days == 1:
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 1
+
+    # Current streak: scan backwards from the last date
+    current_streak = 1
+    for i in range(len(dates) - 2, -1, -1):
+        if (dates[i + 1] - dates[i]).days == 1:
+            current_streak += 1
+        else:
+            break
+
+    return current_streak, max(longest, current_streak)
 
 
 class StreakService:
@@ -63,13 +94,21 @@ class StreakService:
             
             # Extract data - normalize to UTC-aware so JSON has "Z" (fixes Vercel/Railway display)
             last_check_in_date = _ensure_utc(streak.get("lastCheckInDate"))
-            
+            check_in_history = streak.get("checkInHistory", [])
+
+            # Recalculate streak from checkInHistory so direct DB edits are reflected
+            if check_in_history:
+                current_streak, longest_streak = _recalculate_streak_from_history(check_in_history)
+            else:
+                current_streak = streak.get("currentStreak", 0)
+                longest_streak = streak.get("longestStreak", 0)
+
             result = StreakResponse(
-                currentStreak=streak.get("currentStreak", 0),
-                longestStreak=streak.get("longestStreak", 0),
+                currentStreak=current_streak,
+                longestStreak=max(longest_streak, streak.get("longestStreak", 0)),
                 totalStones=streak.get("totalStones", 0),
                 lastCheckInDate=last_check_in_date,
-                checkInHistory=streak.get("checkInHistory", [])
+                checkInHistory=check_in_history,
             )
             
             logger.debug(f"Successfully retrieved streak for userId: {userId}, habitId: {habitId}")
