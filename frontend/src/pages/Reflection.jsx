@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
-import { reflectionsAPI } from '../services/api';
+import { reflectionsAPI, streaksAPI } from '../services/api';
 import { UserMenu } from '../components';
 import { parseUtcDate } from '../utils/dateUtils';
 
@@ -380,16 +380,10 @@ export default function Reflection() {
   const navigate = useNavigate();
   const habit = location.state?.habit ?? null;
 
-  const { userData, weekData } = useMemo(() => {
-    if (!habit) return { userData: null, weekData: null };
-    return buildReflectionData(habit);
-  }, [habit]);
-
   const [currentScreen, setCurrentScreen] = useState(1);
   const [identityReflection, setIdentityReflection] = useState('');
   const [alignmentValue, setAlignmentValue] = useState(50);
   const [reflectionQ1, setReflectionQ1] = useState('');
-  const [reflectionQ2, setReflectionQ2] = useState('');
   const [selectedExperiment, setSelectedExperiment] = useState(null);
   const [experimentTexts, setExperimentTexts] = useState({});
   const [suggestion, setSuggestion] = useState(null);
@@ -398,8 +392,38 @@ export default function Reflection() {
   const [reflectionItemsLoading, setReflectionItemsLoading] = useState(false);
   const [reflectionItemsError, setReflectionItemsError] = useState(null);
   const [apiReflectionData, setApiReflectionData] = useState(null);
+  const [freshStreak, setFreshStreak] = useState(null);
 
   const habitId = habit?.id ?? null;
+
+  // Fetch fresh streak data so backfilled / recent check-ins are reflected
+  useEffect(() => {
+    if (!habitId || !habit?.userId) return;
+    let cancelled = false;
+    streaksAPI
+      .getUserHabitStreakById(habit.userId, habitId)
+      .then((data) => { if (!cancelled && data) setFreshStreak(data); })
+      .catch(() => {}); // non-blocking; fall back to navigation state
+    return () => { cancelled = true; };
+  }, [habitId, habit?.userId]);
+
+  // Build reflection data from habit, merging fresh streak when available
+  const mergedHabit = useMemo(() => {
+    if (!habit) return null;
+    if (!freshStreak) return habit;
+    return {
+      ...habit,
+      checkInHistory: freshStreak.checkInHistory ?? habit.checkInHistory,
+      totalStones: freshStreak.totalStones ?? habit.totalStones,
+      streakDays: freshStreak.currentStreak ?? habit.streakDays,
+      lastCheckInDate: freshStreak.lastCheckInDate ?? habit.lastCheckInDate,
+    };
+  }, [habit, freshStreak]);
+
+  const { userData, weekData } = useMemo(() => {
+    if (!mergedHabit) return { userData: null, weekData: null };
+    return buildReflectionData(mergedHabit);
+  }, [mergedHabit]);
 
   // Load LLM-generated reflection items and previously saved answers in parallel
   useEffect(() => {
@@ -467,7 +491,7 @@ export default function Reflection() {
       .getReflectionSuggestion({
         habitId,
         reflectionQ1: reflectionQ1 || null,
-        reflectionQ2: reflectionQ2 || null,
+        reflectionQ2: null,
         identityReflection: identityReflection || null,
         identityAlignmentValue: alignmentValue,
       })
@@ -487,7 +511,7 @@ export default function Reflection() {
         if (!cancelled) setSuggestionLoading(false);
       });
     return () => { cancelled = true; };
-  }, [currentScreen, habitId, suggestion, reflectionQ1, reflectionQ2, identityReflection, alignmentValue]);
+  }, [currentScreen, habitId, suggestion, reflectionQ1, identityReflection, alignmentValue]);
 
   // Reset suggestion when going back to Screen 1 so next time we get a fresh suggestion
   useEffect(() => {
@@ -542,10 +566,9 @@ export default function Reflection() {
   }, [apiReflectionData?.insights, stats.showedUpDespiteLowEnergy, stats.skipObstacles]);
 
   const reflectionQuestion1 = apiReflectionData?.reflectionQuestions?.question1 ?? 'What helped you show up — even a little? (optional)';
-  const reflectionQuestion2 = apiReflectionData?.reflectionQuestions?.question2 ?? 'On days it didn\'t happen, what made starting feel harder? (optional)';
 
   // No habit = redirect to home
-  if (!habit || !userData) {
+  if (!mergedHabit || !userData) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
         <p style={{ fontFamily: fonts.body, color: colors.textMuted, marginBottom: 16 }}>No habit selected. Start from a habit tile on Home.</p>
@@ -555,7 +578,6 @@ export default function Reflection() {
   }
 
   const onReflectionQ1Change = useCallback((val) => setReflectionQ1(val), []);
-  const onReflectionQ2Change = useCallback((val) => setReflectionQ2(val), []);
   const onIdentityReflectionChange = useCallback((e) => setIdentityReflection(e.target.value), []);
 
   const suggestionTypeLabels = {
@@ -635,12 +657,6 @@ export default function Reflection() {
           onChange={onReflectionQ1Change}
           placeholder="Maybe it was the music, a friend, or just starting small..."
         />
-        <ReflectionQuestionInput
-          question={reflectionQuestion2}
-          value={reflectionQ2}
-          onChange={onReflectionQ2Change}
-          placeholder="Was it energy, time, mental load, or something else..."
-        />
       </div>
       <div style={{ height: 1, background: colors.border, margin: '0 -32px 20px' }} />
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
@@ -716,6 +732,24 @@ export default function Reflection() {
           Here's one change that could help. Save it to update your habit, or keep your current plan.
         </p>
       </div>
+      {/* Show the user's reflection from Screen 1 */}
+      {(reflectionQ1 || identityReflection) && (
+        <div style={{
+          background: colors.background,
+          borderRadius: 12,
+          padding: '14px 16px',
+          marginBottom: 16,
+          border: `1px solid ${colors.border}`,
+        }}>
+          <p style={{ fontFamily: fonts.body, fontSize: 10, fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 8px 0' }}>Your reflection</p>
+          {reflectionQ1 && (
+            <p style={{ fontFamily: fonts.body, fontSize: 13, color: colors.text, margin: 0, lineHeight: 1.55, fontStyle: 'italic' }}>"{reflectionQ1}"</p>
+          )}
+          {identityReflection && (
+            <p style={{ fontFamily: fonts.body, fontSize: 13, color: colors.textLight, margin: reflectionQ1 ? '8px 0 0 0' : 0, lineHeight: 1.55, fontStyle: 'italic' }}>"{identityReflection}"</p>
+          )}
+        </div>
+      )}
       {suggestionLoading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32, background: colors.background, borderRadius: 12, marginBottom: 24 }}>
           <div style={{ width: 24, height: 24, border: `2px solid ${colors.border}`, borderTopColor: colors.primary, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
@@ -782,7 +816,7 @@ export default function Reflection() {
       await reflectionsAPI.saveReflectionAnswers({
         habitId: habitId,
         reflectionQ1: reflectionQ1 || null,
-        reflectionQ2: reflectionQ2 || null,
+        reflectionQ2: null,
         identityAlignmentValue: alignmentValue,
         identityReflection: identityReflection || null,
         selectedExperiment: selectedExperiment ?? 'maintain',

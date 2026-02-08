@@ -57,3 +57,27 @@ class StreakResponse(BaseModel):
     totalStones: int = Field(0, ge=0, description="Total stones (check-ins) in jar")
     lastCheckInDate: Optional[datetime] = Field(None, description="Last check-in date/time (ISO datetime)")
     checkInHistory: list[str] = Field(default_factory=list, description="List of check-in dates in YYYY-MM-DD format")
+
+
+class BackfillCheckInsRequest(BaseModel):
+    """Request model for backfilling missing check-ins in the current week."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "habitId": "habit456",
+                "starting_idea": "Exercise daily"
+            }
+        }
+    )
+
+    habitId: Optional[str] = Field(None, description="Habit ID. Either habitId or starting_idea must be provided.")
+    starting_idea: Optional[str] = Field(None, description="Starting idea / habit name to look up the habit. Either habitId or starting_idea must be provided.")
+
+
+class BackfillCheckInsResponse(BaseModel):
+    """Response model for backfill check-ins."""
+    habitId: str = Field(..., description="The resolved habit ID")
+    starting_idea: Optional[str] = Field(None, description="The starting idea of the resolved habit")
+    filledDates: list[str] = Field(default_factory=list, description="List of dates (YYYY-MM-DD) that were backfilled")
+    alreadyCheckedIn: list[str] = Field(default_factory=list, description="Dates in the current week that already had check-ins")
+    streak: StreakResponse = Field(..., description="Updated streak after backfill")

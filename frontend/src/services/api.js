@@ -200,6 +200,9 @@ export const streaksAPI = {
     apiRequest(`/getUserHabitStreakById?userId=${userId}&habitId=${habitId}`),
   updateUserHabitStreakById: (data) => 
     apiRequest('/updateUserHabitStreakById', { method: 'POST', body: data }),
+  /** Backfill missing check-ins for the current week. Pass { habitId } or { starting_idea }. */
+  backfillCheckIns: (data) =>
+    apiRequest('/backfillCheckIns', { method: 'POST', body: data }),
 };
 
 /**
