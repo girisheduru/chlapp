@@ -86,11 +86,10 @@ export default function About() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 36,
             margin: '0 auto 20px',
           }}
         >
-          🌱
+          <img src="/flywheel-icon.svg" alt="Habit Flywheel" width={40} height={40} style={{ display: 'block', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
         </div>
         <h1
           style={{

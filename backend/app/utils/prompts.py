@@ -423,38 +423,38 @@ Follow these instructions:
 
 Return a single JSON object with exactly this structure and field names (do not add markdown or any extra text):
 
-{
+{{
   "insights": [
-    { "emoji": "💪", "text": "[Short, warm observation about their week or resilience rooted in Atomic Habits ideas]", "highlight": "[Optional one-sentence Atomic Habits takeaway, such as 'Your streak shows how identity-driven habits stick.']" }
+    {{ "emoji": "💪", "text": "[Short, warm observation about their week or resilience rooted in Atomic Habits ideas]", "highlight": "[Optional one-sentence Atomic Habits takeaway, such as 'Your streak shows how identity-driven habits stick.']" }}
   ],
-  "reflectionQuestions": {
+  "reflectionQuestions": {{
     "question1": "[Rephrased: What subtle cues or routines helped you show up this week? (or similar, tied to cues/identity)]",
     "question2": "[Rephrased: When it was tough to start, what got in the way? How might you tweak your environment or routine? (tie to habit friction or cue)]"
-  },
+  }},
   "experimentSuggestions": [
-    {
+    {{
       "type": "anchor",
       "title": "Strengthen your anchor",
       "currentValue": "[Short summary of their current anchor/cue]",
       "suggestedText": "[Concrete, specific experiment based on cue stacking or making the trigger more obvious]",
       "why": "[One sentence on why this helps, referencing Atomic Habits concepts or laws]"
-    },
-    {
+    }},
+    {{
       "type": "environment",
       "title": "Prep your environment",
       "currentValue": "[Short summary of their current environment setup]",
       "suggestedText": "[Concrete, specific experiment to make the environment more supportive]",
       "why": "[One sentence: why this works, referencing reducing friction or making habits easier]"
-    },
-    {
+    }},
+    {{
       "type": "enjoyment",
       "title": "Make it more enjoyable",
       "currentValue": "[Short summary of their enjoyment or reward aspect]",
       "suggestedText": "[Concrete, specific experiment adding a reward or pairing with something enjoyable]",
       "why": "[One sentence: why this builds positive associations, referencing making habits satisfying]"
-    }
+    }}
   ]
-}
+}}
 
 # Examples
 
@@ -474,42 +474,42 @@ Last check-in: "Yesterday"
 
 Example output:
 
-{
+{{
   "insights": [
-    {
+    {{
       "emoji": "💪",
       "text": "You kept your new habit alive four days in a row. Starting your morning with a simple action shows strong identity-based consistency.",
       "highlight": "Small actions stacked on a reliable cue build lasting routines."
-    }
+    }}
   ],
-  "reflectionQuestions": {
+  "reflectionQuestions": {{
     "question1": "What made it easier to notice your 6am cue this week?",
     "question2": "When you skipped your habit, did anything in your morning routine throw you off? How could you tweak your setup?"
-  },
+  }},
   "experimentSuggestions": [
-    {
+    {{
       "type": "anchor",
       "title": "Strengthen your anchor",
       "currentValue": "Alarm at 6am",
       "suggestedText": "Try placing your alarm on the other side of the room to ensure you get out of bed right away.",
       "why": "Moving the cue into your physical environment makes the habit more obvious and harder to ignore."
-    },
-    {
+    }},
+    {{
       "type": "environment",
       "title": "Prep your environment",
       "currentValue": "Glass and running shoes by the bed",
       "suggestedText": "Lay out your workout clothes on top of your shoes the night before.",
       "why": "Minimizing friction in your environment makes it easier to start your habit immediately."
-    },
-    {
+    }},
+    {{
       "type": "enjoyment",
       "title": "Make it more enjoyable",
       "currentValue": "Listening to favorite music",
       "suggestedText": "Create a special morning playlist you only play during your jog.",
       "why": "Pairing your habit with a reward makes it more satisfying and enjoyable."
-    }
+    }}
   ]
-}
+}}
 
 # Notes
 

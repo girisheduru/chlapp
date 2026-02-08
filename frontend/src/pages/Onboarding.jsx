@@ -32,10 +32,9 @@ const Step1Component = React.memo(({ goalInput, onGoalInputChange, onGoalSelect,
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 20px',
-            fontSize: 32,
           }}
         >
-          🌱
+          <img src="/flywheel-icon.svg" alt="Habit Flywheel" width={40} height={40} style={{ display: 'block', objectFit: 'contain' }} />
         </div>
         <h1 style={{ fontFamily: fonts.heading, fontSize: 28, fontWeight: 600, color: colors.primary, margin: '0 0 10px 0' }}>Welcome</h1>
         <p style={{ fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, margin: 0 }}>Let's build something that lasts.</p>

@@ -93,8 +93,18 @@ class ReflectionCacheService:
                     logger.debug(f"Cache expired (age={age_seconds:.0f}s) for user={user_id}, habit={habit_id}")
                     return None
             
+            # Skip cached defaults (from previous failures) - detect by known default text
+            cached_data = cache_doc.get("data")
+            if cached_data:
+                insights = cached_data.get("insights", [])
+                if insights and len(insights) == 1 and insights[0].get("text") == "Small steps add up. Keep showing up.":
+                    logger.debug(f"Cache contains default data, treating as miss for user={user_id}, habit={habit_id}")
+                    # Delete stale default from cache
+                    await db[CACHE_COLLECTION].delete_one({"userId": user_id, "habitId": habit_id})
+                    return None
+            
             logger.info(f"Cache hit for reflection items: user={user_id}, habit={habit_id}")
-            return cache_doc.get("data")
+            return cached_data
             
         except Exception as e:
             logger.warning(f"Error reading reflection cache: {e}")
@@ -179,26 +189,38 @@ class ReflectionCacheService:
                 "lastCheckInDate": str(streak.lastCheckInDate) if streak.lastCheckInDate else None,
             }
 
+            # Try agent first, then direct LLM, then default (don't cache default)
             data = None
+            
+            # Attempt 1: LangChain ReAct agent
             try:
-                from app.services.llm_service import llm_service
-                from app.utils.prompts import get_reflection_items_prompt
-                prompt = get_reflection_items_prompt(habit_context, streak_data)
-                # Reflection JSON is large; need enough output tokens to avoid truncation
-                data = await llm_service.generate_json(prompt, max_tokens=4096)
-                logger.info(f"Background reflection generated for user={user_id}, habit={habit_id}")
-            except Exception as llm_err:
-                logger.warning(
-                    "LLM reflection failed (%s); using default reflection payload",
-                    llm_err,
+                from app.services.reflection_agent_service import (
+                    generate_reflection_items_with_agent_async,
                 )
-                data = DEFAULT_REFLECTION_DATA.copy()
-
+                data = await generate_reflection_items_with_agent_async(habit_context, streak_data)
+                logger.info(f"Background reflection generated via agent for user={user_id}, habit={habit_id}")
+            except Exception as agent_err:
+                logger.debug(f"Agent unavailable in background task: {agent_err}")
+            
+            # Attempt 2: Direct LLM
+            if not data:
+                try:
+                    from app.services.llm_service import llm_service
+                    from app.utils.prompts import get_reflection_items_prompt
+                    prompt = get_reflection_items_prompt(habit_context, streak_data)
+                    data = await llm_service.generate_json(prompt, max_tokens=4096)
+                    logger.info(f"Background reflection generated via direct LLM for user={user_id}, habit={habit_id}")
+                except Exception as llm_err:
+                    logger.warning("LLM reflection failed in background: %s", llm_err)
+            
+            # Only cache real LLM data (not defaults)
             if data:
                 await self.save_cached_reflection(db, user_id, habit_id, data)
                 return data
-
-            return None
+            
+            # Return default but do NOT cache it (so next request retries LLM)
+            logger.warning("Both agent and LLM failed; returning default (not cached)")
+            return DEFAULT_REFLECTION_DATA.copy()
 
         except Exception as e:
             logger.error(f"Background reflection generation failed: {e}", exc_info=True)
