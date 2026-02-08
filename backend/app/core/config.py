@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-4o-mini"  # Fast, cheap, good quality model
     llm_api_base_url: Optional[str] = None  # For custom API endpoints
     llm_temperature: float = 0.7
-    llm_max_tokens: int = 1000
+    llm_max_tokens: int = 2048  # Some models (e.g. gpt-5-nano) need headroom to avoid finish_reason=length and empty content
 
     # Tavily (optional — for reflection agent web search / James Clear content)
     tavily_api_key: Optional[str] = None

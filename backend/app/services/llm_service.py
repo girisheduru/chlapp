@@ -4,10 +4,26 @@ LLM service for interacting with language models.
 import logging
 import traceback
 import httpx
+import time
 from typing import Optional, List
 from app.core.config import settings
 import json
 import os
+
+DEBUG_LOG_PATH = "/Users/gman/Documents/code/chlapp/.cursor/debug.log"
+# Fallback if .cursor not writable (e.g. server process)
+_DEBUG_LOG_FALLBACK = os.path.join(os.path.dirname(__file__), "..", "..", "debug_llm.ndjson")
+
+
+def _debug_log(location: str, message: str, data: dict, hypothesis_id: str) -> None:
+    payload = json.dumps({"id": f"llm_{int(time.time()*1000)}", "timestamp": int(time.time() * 1000), "location": location, "message": message, "data": data, "hypothesisId": hypothesis_id}) + "\n"
+    for path in (DEBUG_LOG_PATH, _DEBUG_LOG_FALLBACK):
+        try:
+            with open(path, "a") as f:
+                f.write(payload)
+            break
+        except Exception:
+            continue
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +151,11 @@ class LLMService:
             # Some models only support the default temperature (1). Omit when not 1 so the API uses default.
             if temperature is not None and abs(temperature - 1.0) < 0.001:
                 payload["temperature"] = 1.0
-            
+
+            # #region debug log
+            _debug_log("llm_service.py:request", "request payload keys and model", {"model": self.model, "max_completion_tokens": max_tokens, "payload_keys": list(payload.keys())}, "H5")
+            # #endregion
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 try:
                     response = await client.post(
@@ -145,7 +165,28 @@ class LLMService:
                     )
                     response.raise_for_status()
                     data = response.json()
-                    
+
+                    # #region debug log
+                    c0 = data.get("choices", [{}])[0] if data.get("choices") else {}
+                    msg = c0.get("message", {}) if isinstance(c0, dict) else {}
+                    raw_content = msg.get("content") if isinstance(msg, dict) else None
+                    debug_data = {
+                        "data_keys": list(data.keys()),
+                        "choices_len": len(data.get("choices", [])),
+                        "choice0_keys": list(c0.keys()) if isinstance(c0, dict) else None,
+                        "message_keys": list(msg.keys()) if isinstance(msg, dict) else None,
+                        "finish_reason": c0.get("finish_reason"),
+                        "content_type": type(raw_content).__name__,
+                        "content_is_none": raw_content is None,
+                        "content_repr_len": len(repr(raw_content)) if raw_content is not None else 0,
+                        "content_repr_preview": repr(raw_content)[:300] if raw_content is not None else None,
+                    }
+                    logger.warning("LLM response debug (H1/H3/H4): %s", json.dumps(debug_data))
+                    _debug_log("llm_service.py:response", "API response structure and content", debug_data, "H1")
+                    if isinstance(raw_content, list):
+                        _debug_log("llm_service.py:response", "content is list (multimodal)", {"content_len": len(raw_content), "first_item_type": type(raw_content[0]).__name__ if raw_content else None}, "H2")
+                    # #endregion
+
                     # Extract the generated text
                     if "choices" in data and len(data["choices"]) > 0:
                         content = data["choices"][0]["message"].get("content")
@@ -153,7 +194,23 @@ class LLMService:
                         print(f"[LLM] API returned success response_len={len(generated_text)}")
                         logger.info(f"LLM API success response_length={len(generated_text)}")
                         if not generated_text:
+                            # #region debug log
+                            _debug_log("llm_service.py:empty_branch", "entered empty content branch", {"finish_reason": data["choices"][0].get("finish_reason"), "message_keys": list(data["choices"][0].get("message", {}).keys())}, "H3")
+                            # #endregion
                             logger.warning("LLM API returned empty content")
+                            msg = data["choices"][0].get("message", {})
+                            logger.warning(
+                                "LLM empty response debug - model=%s max_completion_tokens=%s "
+                                "finish_reason=%s message_keys=%s",
+                                self.model,
+                                max_tokens,
+                                data["choices"][0].get("finish_reason"),
+                                list(msg.keys()) if isinstance(msg, dict) else type(msg),
+                            )
+                            logger.warning(
+                                "PROMPT FOR DEBUG (copy to ChatGPT):\n---\n%s\n---",
+                                prompt,
+                            )
                             raise ValueError("LLM API returned empty response")
                         return generated_text
                     else:

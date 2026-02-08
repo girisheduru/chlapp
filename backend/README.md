@@ -147,7 +147,7 @@ DATABASE_NAME=chl_datastore_db
 LLM_API_KEY=your_api_key_here
 LLM_MODEL=gpt-4o-mini  # Fast, cheap, good quality (default)
 LLM_TEMPERATURE=0.7
-LLM_MAX_TOKENS=1000
+LLM_MAX_TOKENS=2048
 # LLM_API_BASE_URL=https://api.openai.com/v1  # Optional, for custom endpoints
 
 # Tavily (optional - for reflection agent web search / James Clear content)
