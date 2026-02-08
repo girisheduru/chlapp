@@ -287,7 +287,10 @@ class LLMService:
         max_tokens: Optional[int] = 2048,
     ) -> dict:
         """
-        Generate JSON from LLM. Expects prompt to ask for JSON; strips markdown code blocks if present.
+        Generate JSON from LLM. Handles:
+        - Pure JSON responses
+        - Markdown-wrapped JSON (```json ... ```)
+        - Reasoning text before/after JSON (extracts first { ... } block)
         """
         try:
             raw = await self.generate_text(
@@ -299,14 +302,38 @@ class LLMService:
             if not text:
                 logger.warning("LLM returned empty response; cannot parse as JSON")
                 raise ValueError("LLM returned empty response; cannot parse as JSON")
+
+            # Strip markdown code blocks if present
             if text.startswith("```"):
                 lines = text.split("\n")
                 if lines[0].startswith("```"):
                     lines = lines[1:]
                 if lines and lines[-1].strip() == "```":
                     lines = lines[:-1]
-                text = "\n".join(lines)
-            return json.loads(text)
+                text = "\n".join(lines).strip()
+
+            # Try direct parse first (pure JSON)
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                pass
+
+            # Extract JSON object from within reasoning text:
+            # Find the first '{' and the matching last '}'
+            first_brace = text.find("{")
+            last_brace = text.rfind("}")
+            if first_brace != -1 and last_brace > first_brace:
+                json_candidate = text[first_brace:last_brace + 1]
+                try:
+                    result = json.loads(json_candidate)
+                    logger.info("Extracted JSON from LLM response with surrounding text")
+                    return result
+                except json.JSONDecodeError:
+                    pass
+
+            # Nothing worked — raise with context
+            logger.warning(f"LLM JSON parse error. Raw (first 500 chars): {raw[:500] if raw else 'empty'}")
+            raise ValueError(f"LLM did not return valid JSON. Raw start: {raw[:200] if raw else 'empty'}")
         except json.JSONDecodeError as e:
             logger.warning(f"LLM JSON parse error: {e}. Raw (first 500 chars): {raw[:500] if raw else 'empty'}")
             raise ValueError(f"LLM did not return valid JSON: {e}") from e

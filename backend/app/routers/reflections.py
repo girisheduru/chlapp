@@ -215,6 +215,7 @@ async def get_reflection_suggestion(
         if not habit_context:
             habit_context = {}
         print(f"[getReflectionSuggestion] Habit context keys: {list(habit_context.keys())}")
+        print(f"[getReflectionSuggestion] Reflection input: Q1={repr(request.reflectionQ1)}, identity={repr(request.identityReflection)}, alignment={request.identityAlignmentValue}")
         prompt = get_reflection_suggestion_prompt(
             habit_context,
             request.reflectionQ1 or "",

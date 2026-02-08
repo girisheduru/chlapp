@@ -402,20 +402,39 @@ export default function Reflection() {
     let cancelled = false;
     streaksAPI
       .getUserHabitStreakById(habit.userId, habitId)
-      .then((data) => { if (!cancelled && data) setFreshStreak(data); })
-      .catch(() => {}); // non-blocking; fall back to navigation state
+      .then((data) => {
+        if (!cancelled && data) {
+          console.log('[Reflection] Fresh streak fetched:', {
+            habitId,
+            checkInHistory: data.checkInHistory,
+            currentStreak: data.currentStreak,
+            totalStones: data.totalStones,
+          });
+          setFreshStreak(data);
+        }
+      })
+      .catch((err) => {
+        console.warn('[Reflection] Fresh streak fetch failed (using navigation state):', err);
+      });
     return () => { cancelled = true; };
   }, [habitId, habit?.userId]);
 
-  // Build reflection data from habit, merging fresh streak when available
+  // Build reflection data from habit, merging fresh streak when available.
+  // Use UNION of both checkInHistory sources so backfilled + navigation state data both contribute.
   const mergedHabit = useMemo(() => {
     if (!habit) return null;
     if (!freshStreak) return habit;
+
+    // Union both sources of check-in dates
+    const navHistory = habit.checkInHistory ?? [];
+    const apiHistory = freshStreak.checkInHistory ?? [];
+    const mergedHistory = [...new Set([...navHistory, ...apiHistory])].sort();
+
     return {
       ...habit,
-      checkInHistory: freshStreak.checkInHistory ?? habit.checkInHistory,
-      totalStones: freshStreak.totalStones ?? habit.totalStones,
-      streakDays: freshStreak.currentStreak ?? habit.streakDays,
+      checkInHistory: mergedHistory,
+      totalStones: Math.max(freshStreak.totalStones ?? 0, habit.totalStones ?? 0),
+      streakDays: Math.max(freshStreak.currentStreak ?? 0, habit.streakDays ?? 0),
       lastCheckInDate: freshStreak.lastCheckInDate ?? habit.lastCheckInDate,
     };
   }, [habit, freshStreak]);
@@ -732,24 +751,6 @@ export default function Reflection() {
           Here's one change that could help. Save it to update your habit, or keep your current plan.
         </p>
       </div>
-      {/* Show the user's reflection from Screen 1 */}
-      {(reflectionQ1 || identityReflection) && (
-        <div style={{
-          background: colors.background,
-          borderRadius: 12,
-          padding: '14px 16px',
-          marginBottom: 16,
-          border: `1px solid ${colors.border}`,
-        }}>
-          <p style={{ fontFamily: fonts.body, fontSize: 10, fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 8px 0' }}>Your reflection</p>
-          {reflectionQ1 && (
-            <p style={{ fontFamily: fonts.body, fontSize: 13, color: colors.text, margin: 0, lineHeight: 1.55, fontStyle: 'italic' }}>"{reflectionQ1}"</p>
-          )}
-          {identityReflection && (
-            <p style={{ fontFamily: fonts.body, fontSize: 13, color: colors.textLight, margin: reflectionQ1 ? '8px 0 0 0' : 0, lineHeight: 1.55, fontStyle: 'italic' }}>"{identityReflection}"</p>
-          )}
-        </div>
-      )}
       {suggestionLoading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32, background: colors.background, borderRadius: 12, marginBottom: 24 }}>
           <div style={{ width: 24, height: 24, border: `2px solid ${colors.border}`, borderTopColor: colors.primary, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
