@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 
-// Clear Habit Lab - Home Screen V8
+// Habit Flywheel - Home Screen V8
 // Updates:
 // - Mini stone jar icon in header (matches tile jars)
 
@@ -147,24 +147,9 @@ const HomeScreenV8 = () => {
     mono: "'DM Mono', monospace",
   };
 
-  // Tiny Header Jar Icon
+  // Stone jar icon for total-stones counter
   const HeaderJarIcon = () => (
-    <svg width="20" height="22" viewBox="0 0 48 52" fill="none">
-      <path 
-        d="M8 18C6 18 4 20 4 24V44C4 48 8 50 12 50H36C40 50 44 48 44 44V24C44 20 42 18 40 18"
-        stroke={colors.primaryLight}
-        strokeWidth="3"
-        fill="rgba(74, 124, 89, 0.1)"
-      />
-      <rect x="12" y="8" width="24" height="10" rx="2" stroke={colors.primaryLight} strokeWidth="3" fill="rgba(74, 124, 89, 0.1)" />
-      <rect x="10" y="4" width="28" height="6" rx="3" fill={colors.primaryLight} opacity="0.4" />
-      {/* A few stones inside */}
-      <circle cx="18" cy="40" r="4" fill={colors.primaryLight} opacity="0.7" />
-      <circle cx="30" cy="42" r="3.5" fill={colors.primary} opacity="0.8" />
-      <circle cx="24" cy="36" r="4" fill={colors.primaryLight} opacity="0.6" />
-      <circle cx="20" cy="32" r="3" fill={colors.primary} opacity="0.7" />
-      <circle cx="28" cy="34" r="3.5" fill={colors.primaryLight} opacity="0.8" />
-    </svg>
+    <img src="/stone-jar-icon.png" alt="" width={20} height={22} style={{ display: 'block', objectFit: 'contain' }} />
   );
 
   // Mini Stone Jar for tiles
@@ -685,26 +670,14 @@ const HomeScreenV8 = () => {
           marginBottom: 28,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
-              background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 18,
-              boxShadow: '0 4px 12px rgba(45, 90, 69, 0.2)',
-            }}>
-              🌱
-            </div>
+            <img src="/flywheel-icon.svg" alt="" width={28} height={28} style={{ display: 'block', objectFit: 'contain' }} />
             <span style={{ 
               fontFamily: fonts.heading, 
               fontSize: 19, 
               fontWeight: 600, 
               color: colors.primary 
             }}>
-              Clear Habit Lab
+              Habit Flywheel
             </span>
           </div>
 

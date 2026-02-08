@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-// James Clear Habit App - Daily Check-In UI Mockups V5
+// Habit Flywheel - Daily Check-In UI Mockups V7
 // UPDATED with:
 // - Single check-in screen with expandable reflection sections
 // - Removed shrink/micro/bite-sized functionality
@@ -1219,20 +1219,9 @@ const DailyCheckInMockupsV5 = () => {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 18,
-            }}>
-              🌱
-            </div>
+            <img src="/flywheel-icon.svg" alt="" width={26} height={26} style={{ display: 'block', objectFit: 'contain' }} />
             <span style={{ fontFamily: fonts.heading, fontSize: 18, fontWeight: 600, color: colors.primary }}>
-              Clear Habit Lab
+              Habit Flywheel
             </span>
           </div>
         </div>

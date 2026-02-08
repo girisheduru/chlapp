@@ -8,10 +8,7 @@ import os
 from typing import Optional
 
 from app.core.config import settings
-from app.utils.prompts import (
-    get_reflection_agent_system_prompt,
-    get_reflection_agent_user_prompt,
-)
+from app.utils.prompts import get_reflection_items_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -194,8 +191,8 @@ def generate_reflection_items_with_agent(
 
     try:
         agent = _get_agent()
-        system_prompt = get_reflection_agent_system_prompt()
-        user_prompt = get_reflection_agent_user_prompt(habit_context, streak_data)
+        system_prompt = "You are a supportive habit coach. Output only valid JSON as specified in the user message. You may use the search tool to find James Clear / Atomic Habits content to enrich your response."
+        user_prompt = get_reflection_items_prompt(habit_context, streak_data)
 
         messages = [
             SystemMessage(content=system_prompt),

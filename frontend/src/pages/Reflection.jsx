@@ -922,17 +922,8 @@ export default function Reflection() {
               cursor: 'pointer',
             }}
           >
-            <div style={{
-              width: 34,
-              height: 34,
-              borderRadius: 8,
-              background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 16,
-            }}>🌱</div>
-            <span style={{ fontFamily: fonts.heading, fontSize: 17, fontWeight: 600, color: colors.primary }}>Clear Habit Lab</span>
+            <img src="/flywheel-icon.svg" alt="" width={24} height={24} style={{ display: 'block', objectFit: 'contain' }} />
+            <span style={{ fontFamily: fonts.heading, fontSize: 17, fontWeight: 600, color: colors.primary }}>Habit Flywheel</span>
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

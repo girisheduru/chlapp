@@ -905,20 +905,9 @@ const DailyCheckIn = () => {
               cursor: 'pointer',
             }}
           >
-            <div style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 18,
-            }}>
-              🌱
-            </div>
+            <img src="/flywheel-icon.svg" alt="" width={26} height={26} style={{ display: 'block', objectFit: 'contain' }} />
             <span style={{ fontFamily: fonts.heading, fontSize: 18, fontWeight: 600, color: colors.primary }}>
-              Clear Habit Lab
+              Habit Flywheel
             </span>
           </Link>
           <UserMenu />

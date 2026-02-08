@@ -44,21 +44,7 @@ export function LoginGate({ onSignIn }) {
             cursor: 'pointer',
           }}
         >
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 16,
-              background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 32,
-              margin: '0 auto 24px',
-            }}
-          >
-            🌱
-          </div>
+          <img src="/flywheel-icon.svg" alt="" width={48} height={48} style={{ display: 'block', margin: '0 auto 24px', objectFit: 'contain' }} />
           <h1
             style={{
               fontFamily: fonts.heading,
@@ -68,7 +54,7 @@ export function LoginGate({ onSignIn }) {
               margin: '0 0 8px 0',
             }}
           >
-            Clear Habit Lab
+            Habit Flywheel
           </h1>
         </Link>
         <p

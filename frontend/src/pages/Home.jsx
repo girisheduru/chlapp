@@ -234,23 +234,9 @@ export default function Home() {
               cursor: 'pointer',
             }}
           >
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 10,
-                background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 18,
-                boxShadow: '0 4px 12px rgba(45, 90, 69, 0.2)',
-              }}
-            >
-              🌱
-            </div>
+            <img src="/flywheel-icon.svg" alt="" width={28} height={28} style={{ display: 'block', objectFit: 'contain' }} />
             <span style={{ fontFamily: fonts.heading, fontSize: 19, fontWeight: 600, color: colors.primary }}>
-              Clear Habit Lab
+              Habit Flywheel
             </span>
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

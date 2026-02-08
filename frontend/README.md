@@ -1,4 +1,4 @@
-# Clear Habit Lab - React Frontend
+# Habit Flywheel - React Frontend
 
 A React application built with Vite, featuring Firebase authentication, habit tracking with onboarding flows, daily check-ins with streak tracking, and AI-powered reflection insights. The project includes a clean component structure, shared design tokens, and reusable UI components.
 

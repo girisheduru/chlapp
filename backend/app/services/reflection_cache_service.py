@@ -179,29 +179,20 @@ class ReflectionCacheService:
                 "lastCheckInDate": str(streak.lastCheckInDate) if streak.lastCheckInDate else None,
             }
 
-            # Try agent first, then fall back to direct LLM, then to default payload
             data = None
             try:
-                from app.services.reflection_agent_service import (
-                    generate_reflection_items_with_agent_async,
+                from app.services.llm_service import llm_service
+                from app.utils.prompts import get_reflection_items_prompt
+                prompt = get_reflection_items_prompt(habit_context, streak_data)
+                # Reflection JSON is large; need enough output tokens to avoid truncation
+                data = await llm_service.generate_json(prompt, max_tokens=4096)
+                logger.info(f"Background reflection generated for user={user_id}, habit={habit_id}")
+            except Exception as llm_err:
+                logger.warning(
+                    "LLM reflection failed (%s); using default reflection payload",
+                    llm_err,
                 )
-                data = await generate_reflection_items_with_agent_async(habit_context, streak_data)
-                logger.info(f"Background reflection generated via agent for user={user_id}, habit={habit_id}")
-            except (ImportError, ValueError, Exception) as agent_err:
-                logger.debug(f"Agent unavailable, falling back to direct LLM: {agent_err}")
-                try:
-                    from app.services.llm_service import llm_service
-                    from app.utils.prompts import get_reflection_items_prompt
-                    prompt = get_reflection_items_prompt(habit_context, streak_data)
-                    # Reflection JSON is large; need enough output tokens to avoid truncation
-                    data = await llm_service.generate_json(prompt, max_tokens=4096)
-                    logger.info(f"Background reflection generated via direct LLM for user={user_id}, habit={habit_id}")
-                except Exception as llm_err:
-                    logger.warning(
-                        "Direct LLM reflection also failed (%s); using default reflection payload",
-                        llm_err,
-                    )
-                    data = DEFAULT_REFLECTION_DATA.copy()
+                data = DEFAULT_REFLECTION_DATA.copy()
 
             if data:
                 await self.save_cached_reflection(db, user_id, habit_id, data)
