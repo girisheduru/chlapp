@@ -304,16 +304,13 @@ def get_obvious_cues_prompt(habit_context: dict) -> str:
    habit_stack = habit_context.get("habit_stack", "")
 
 
-   prompt = f"""Generate 3 practical environment design tips that will make the user's habit the path of least resistance — and make the space inviting enough that they actually want to do it.
-
+   prompt = f"""Generate 3 practical environment design tips that will make the user's habit the path of least resistance.
 
 This combines two of James Clear's laws of behavior change from Atomic Habits:
 - "Make it obvious" — prime your environment so the good habit is the easiest, most visible thing to do.
 - "Make it attractive" — set up the space so it feels enjoyable, not like a chore.
 
-
 As Clear says: "Walk into the rooms where you spend most of your time and ask yourself, what is this space designed to encourage?"
-
 
 Habit Context:
 - Starting Idea: {starting_idea}
@@ -321,85 +318,87 @@ Habit Context:
 - Nucleus Habit: {starter_habit}
 - Supernova Habit: {full_habit}
 - Habit Stack (cue): {habit_stack}
-
+- What makes it fun: {enjoyment}
 
 Guidelines:
+- Follow this pattern for the 3 tips:
+  1. Make it obvious — put the thing the user needs in sight, right where the habit happens.
+  2. Make it obvious — create a space dedicated to the habit, framed positively around what the space is for (not what to remove or hide).
+  3. Make it attractive — weave in the user's enjoyment factor using a bracket at the end. The tip should work on its own as a practical environment change, and the bracket adds a specific enjoyment enhancement. Format: "Practical tip (enjoyment enhancement)." Only include the bracket if the enjoyment factor genuinely connects to the habit — if it doesn't, keep the tip purely practical.
 - Each tip should be a simple, physical change the user can make to their space right now.
-- Focus on reducing friction for the habit and increasing friction for distractions.
-- At least one tip should make the space more enjoyable or inviting — not just functional. Think: what would make the user actually look forward to being in that spot?
+- When a tip reduces friction or distractions, frame it positively — describe what the space becomes for the habit, not what the user should remove or hide. Connect it back to why it helps the habit.
 - Keep each tip to one short sentence — these display on a mobile screen.
+- Avoid absolutes ("never," "always," "every") and specific numbers or metrics.
 - Tips should be specific to the user's habit, not generic productivity advice.
 - Do not suggest alarms, reminders, apps, or notifications — this is about physical space only.
 - Do not suggest anything involving other people.
 - Do not repeat or restate the habit stack cue — that's already been chosen.
 - Each tip should make sense as something the user sets up once and benefits from daily.
 
-
 # Steps
 1. Look at the nucleus and supernova habits — what physical items, tools, or spaces does the user need to do them?
-2. Think about where friction exists — what might stop the user from starting?
-3. Think about what would make the space feel good — what would make the user want to be there?
-4. Suggest simple physical changes that put items in sight, remove barriers, create a dedicated space, and make it an enjoyable place to do the habit.
-
+2. Think about where the habit happens and how to make that spot dedicated to the habit — frame it positively around what the space is for.
+3. Check the enjoyment factor — can it be turned into a specific, concrete enhancement to one of the tips? If yes, add it in brackets. If it doesn't naturally connect, skip the bracket.
+4. Suggest simple physical changes that put items in sight, create a dedicated space, and make it an enjoyable place to do the habit.
 
 # Output Format
 - Return exactly 3 tips, one per line, no numbering or bullets.
 - Each tip should be one short, concrete sentence.
+- At most one tip should include a bracketed enjoyment enhancement.
 - No introductory text, commentary, or explanations.
 
-
 # Examples
-
 
 **Example 1**
 - Starting Idea: Read more books
 - Nucleus Habit: Read one page of a book you're working through
 - Supernova Habit: Read a full chapter of your current book
 - Habit Stack: After my evening tea
+- What makes it fun: My cozy setup
 - Output:
-Leave your book on the arm of the chair where you drink your tea.
-Put your phone charger in another room so your book is the easiest thing to reach.
-Make your reading spot cozy — good lighting, a blanket, whatever makes you want to sit there.
-
+Leave your book on the chair where you drink your evening tea so it's waiting for you.
+Make your tea chair a screen-free zone so your book gets your full attention.
+Set up your reading corner to feel inviting (a soft blanket, good lighting, whatever makes you want to stay).
 
 **Example 2**
 - Starting Idea: Meditate regularly
 - Nucleus Habit: Sit quietly and take five slow, intentional breaths
 - Supernova Habit: Do a full guided meditation session
 - Habit Stack: Right after waking up
+- What makes it fun: A look or vibe I like
 - Output:
 Set a cushion or pillow in a quiet corner where you'll see it when you get out of bed.
-Keep your meditation space clear of clutter so it feels calm and inviting.
-Put headphones next to your cushion if you use guided sessions.
-
+Keep headphones next to your cushion if you use guided sessions.
+Make your meditation spot feel like yours (a candle, a plant, whatever vibe draws you in).
 
 **Example 3**
 - Starting Idea: Get into better shape
 - Nucleus Habit: Do one set of push-ups or bodyweight squats
 - Supernova Habit: Complete a full bodyweight workout
 - Habit Stack: After my morning coffee
+- What makes it fun: Music I love
 - Output:
-Lay out your workout clothes the night before so they're the first thing you see.
-Keep a yoga mat unrolled in the space where you'll exercise so there's zero setup.
-Make the space yours — a playlist queued up, good ventilation, whatever makes you want to move.
-
+Lay out your workout clothes the night before so you can change and go right after your morning coffee.
+Dedicate a spot in your home for movement so there's room to go without any setup.
+Leave your headphones or speaker somewhere visible in the kitchen (with your playlist queued up so you grab them with your coffee).
 
 **Example 4**
 - Starting Idea: Advance in my career
 - Nucleus Habit: Read one page or article related to your field
 - Supernova Habit: Read a full article or book chapter related to your field
 - Habit Stack: After eating lunch
+- What makes it fun: A bit of challenge
 - Output:
-Keep a book or article open on your desk so it's ready when you sit down after lunch.
-Bookmark one go-to learning site so it's one click away on your browser.
-Set up your learning spot to feel like a break — a clean desk, a good drink, a comfortable seat.
-
+Pin your go-to learning site as the first tab in your browser so it's open after lunch.
+Save articles in one dedicated spot so you have something ready to read when you sit down.
+Keep a notes doc open alongside your reading (challenge yourself to pull out one usable idea each time).
 
 # Notes
 - This is about physical environment design — not cues, not reminders, not apps, not social accountability.
 - Think like an interior designer for habits: where do things go so the right behavior is the obvious one?
-- Each tip should reduce friction (make the habit easier to start) or increase enjoyment (make the space somewhere the user wants to be).
-- At least one tip per set should address the enjoyment side — "make it attractive" is just as important as "make it obvious."
+- Tip 1 is about visibility — put the habit in the user's path. Tip 2 is about creating a dedicated space — framed positively. Tip 3 is about making it attractive — weaving in the enjoyment factor where it fits.
+- The bracket pattern lets you acknowledge the user's enjoyment factor without forcing it. The tip must stand alone as a practical environment change — the bracket is a bonus, not the main point.
+- If the enjoyment factor doesn't naturally connect to the physical environment, skip the bracket entirely. A practical tip is better than a contrived fun tip.
 - Tips should feel practical and doable — not aspirational or requiring a major life change."""
 
 
