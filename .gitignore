@@ -45,6 +45,7 @@ firebase-service-account.json
 # Logs
 logs/
 *.log
+backend/debug_llm.ndjson
 
 # MongoDB
 *.db
