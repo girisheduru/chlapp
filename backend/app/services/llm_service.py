@@ -101,6 +101,7 @@ class LLMService:
         self.base_url = settings.llm_api_base_url or "https://api.openai.com/v1"
         self.temperature = settings.llm_temperature
         self.max_tokens = settings.llm_max_tokens
+        self.is_openrouter = "openrouter.ai" in self.base_url.lower()
 
     @_track
     async def generate_text(
@@ -137,6 +138,13 @@ class LLMService:
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
             }
+
+            # OpenRouter recommends these optional attribution headers.
+            if self.is_openrouter:
+                if settings.openrouter_site_url:
+                    headers["HTTP-Referer"] = settings.openrouter_site_url
+                if settings.openrouter_app_name:
+                    headers["X-Title"] = settings.openrouter_app_name
             
             payload = {
                 "model": self.model,
@@ -146,14 +154,29 @@ class LLMService:
                         "content": prompt
                     }
                 ],
-                "max_completion_tokens": max_tokens,
             }
+            # OpenRouter/provider routing is most compatible with max_tokens.
+            # Keep max_completion_tokens for non-OpenRouter setups that rely on it.
+            if self.is_openrouter:
+                payload["max_tokens"] = max_tokens
+            else:
+                payload["max_completion_tokens"] = max_tokens
             # Some models only support the default temperature (1). Omit when not 1 so the API uses default.
             if temperature is not None and abs(temperature - 1.0) < 0.001:
                 payload["temperature"] = 1.0
 
             # #region debug log
-            _debug_log("llm_service.py:request", "request payload keys and model", {"model": self.model, "max_completion_tokens": max_tokens, "payload_keys": list(payload.keys())}, "H5")
+            _debug_log(
+                "llm_service.py:request",
+                "request payload keys and model",
+                {
+                    "model": self.model,
+                    "token_key": "max_tokens" if self.is_openrouter else "max_completion_tokens",
+                    "max_tokens": max_tokens,
+                    "payload_keys": list(payload.keys()),
+                },
+                "H5",
+            )
             # #endregion
 
             async with httpx.AsyncClient(timeout=30.0) as client:

@@ -319,12 +319,14 @@ All API endpoints are prefixed with `/api/v1`. Most endpoints require Firebase a
 MONGODB_URL=mongodb://localhost:27017
 DATABASE_NAME=chl_datastore_db
 
-# LLM (OpenAI or compatible API)
+# LLM (OpenRouter or OpenAI-compatible API)
 LLM_API_KEY=your_api_key_here
-LLM_MODEL=gpt-4o-mini  # Fast, cheap, good quality (default)
+LLM_MODEL=openai/gpt-4o-mini  # OpenRouter model id
 LLM_TEMPERATURE=0.7
 LLM_MAX_TOKENS=1000
-# LLM_API_BASE_URL=https://api.openai.com/v1  # Optional, for custom endpoints
+LLM_API_BASE_URL=https://openrouter.ai/api/v1
+# OPENROUTER_SITE_URL=https://your-app-domain.com
+# OPENROUTER_APP_NAME=CHL App
 
 # Tavily (optional - for reflection agent web search)
 # TAVILY_API_KEY=your_tavily_key

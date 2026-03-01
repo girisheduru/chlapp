@@ -30,8 +30,11 @@ In Railway → your backend service → **Variables** tab, add:
 |----------|-------|----------|
 | `MONGODB_URL` | (reference from MongoDB service or paste directly) | ✅ |
 | `DATABASE_NAME` | `chl_datastore_db` (or your preferred name) | ✅ |
-| `LLM_API_KEY` | Your OpenAI API key | ✅ |
-| `LLM_MODEL` | `gpt-4` or `gpt-3.5-turbo` | Optional |
+| `LLM_API_KEY` | Your OpenRouter API key | ✅ |
+| `LLM_MODEL` | `openai/gpt-4o-mini` (or any OpenRouter model id) | Optional |
+| `LLM_API_BASE_URL` | `https://openrouter.ai/api/v1` | ✅ |
+| `OPENROUTER_SITE_URL` | Your app URL (recommended) | Optional |
+| `OPENROUTER_APP_NAME` | Your app name (recommended) | Optional |
 | `CORS_ORIGINS` | `https://chlapp.vercel.app` (your Vercel URL) | ✅ |
 
 ### MongoDB: Local vs Railway
