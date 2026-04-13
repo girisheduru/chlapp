@@ -29,6 +29,8 @@ dist-ssr/
 **/.env
 **/.env.local
 **/.env.*.local
+backend/.env.copy
+backend/.env.railway
 
 # Firebase service account (never commit)
 **/firebase-service-account.json

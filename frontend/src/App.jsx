@@ -14,7 +14,16 @@ import './App.css'
 
 function App() {
   const navigate = useNavigate()
-  const { user, loading, signInWithGoogle, signOut, getIdToken, isFirebaseConfigured } = useAuth()
+  const {
+    user,
+    loading,
+    signInWithGoogle,
+    signOut,
+    getIdToken,
+    isFirebaseConfigured,
+    signInError,
+    clearSignInError,
+  } = useAuth()
   const prevUserRef = useRef(null)
 
   useEffect(() => {
@@ -58,8 +67,30 @@ function App() {
       <div className="App" style={{ minHeight: '100vh', background: colors.background }}>
         <Routes>
           <Route path="/about" element={<About />} />
-          <Route path="/" element={<LoginGate onSignIn={async () => { await signInWithGoogle() }} />} />
-          <Route path="*" element={<LoginGate onSignIn={async () => { await signInWithGoogle() }} />} />
+          <Route
+            path="/"
+            element={
+              <LoginGate
+                signInError={signInError}
+                onDismissError={clearSignInError}
+                onSignIn={async () => {
+                  await signInWithGoogle()
+                }}
+              />
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <LoginGate
+                signInError={signInError}
+                onDismissError={clearSignInError}
+                onSignIn={async () => {
+                  await signInWithGoogle()
+                }}
+              />
+            }
+          />
         </Routes>
       </div>
     )

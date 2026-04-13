@@ -6,7 +6,7 @@ import { colors, fonts } from '../constants/designTokens';
  * Full-page gate shown when Firebase is configured and user is not signed in.
  * Users must sign in before they can access Home, Onboarding, or Daily Check-In.
  */
-export function LoginGate({ onSignIn }) {
+export function LoginGate({ onSignIn, signInError, onDismissError }) {
   return (
     <div
       style={{
@@ -68,6 +68,46 @@ export function LoginGate({ onSignIn }) {
         >
           Sign in to view your habits, add new ones, and check in.
         </p>
+        {signInError ? (
+          <div
+            role="alert"
+            style={{
+              textAlign: 'left',
+              fontFamily: fonts.body,
+              fontSize: 13,
+              color: '#8b2942',
+              background: 'rgba(139, 41, 66, 0.08)',
+              border: '1px solid rgba(139, 41, 66, 0.25)',
+              borderRadius: 12,
+              padding: '12px 14px',
+              marginBottom: 16,
+              lineHeight: 1.45,
+            }}
+          >
+            {signInError}
+            {onDismissError ? (
+              <button
+                type="button"
+                onClick={onDismissError}
+                style={{
+                  display: 'block',
+                  marginTop: 10,
+                  padding: 0,
+                  border: 'none',
+                  background: 'none',
+                  color: colors.primary,
+                  fontFamily: fonts.body,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                Dismiss
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         <Link
           to="/about"
           style={{
