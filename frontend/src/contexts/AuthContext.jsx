@@ -40,7 +40,10 @@ export function AuthProvider({ children }) {
         if (!cancelled) setSignInError(null)
       } catch (err) {
         const msg = err?.message ?? String(err)
+        const code = err?.code ?? ''
+        // argument-error: bad/missing OAuth hash, or no redirect pending — safe to ignore on load
         const benign =
+          code === 'auth/argument-error' ||
           msg.includes('missing initial state') ||
           msg.includes('Missing initial state')
         if (benign) {
@@ -57,7 +60,7 @@ export function AuthProvider({ children }) {
             /* ignore */
           }
         } else {
-          console.warn('[Auth] getRedirectResult:', err?.code, msg)
+          console.warn('[Auth] getRedirectResult:', code, msg)
         }
       }
 
@@ -105,7 +108,9 @@ export function AuthProvider({ children }) {
       setSignInError(
         code === 'auth/unauthorized-domain'
           ? 'This domain is not allowed in Firebase. Add it under Authentication → Settings → Authorized domains.'
-          : e?.message || 'Sign-in failed. Try again or allow popups for this site.'
+          : code === 'auth/argument-error'
+            ? 'Firebase config looks invalid (check VITE_FIREBASE_AUTH_DOMAIN and other VITE_FIREBASE_* in .env match Firebase Console).'
+            : e?.message || 'Sign-in failed. Try again or allow popups for this site.'
       )
     }
   }, [])

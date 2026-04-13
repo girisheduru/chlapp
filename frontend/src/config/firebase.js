@@ -1,14 +1,10 @@
 /**
  * Firebase app and auth. Configure via VITE_FIREBASE_* env vars (see .example.env).
- * Uses IndexedDB + local persistence so auth survives refreshes; pairs with getRedirectResult in AuthContext.
+ * Uses getAuth (default browser persistence). Custom initializeAuth + persistence caused auth/argument-error
+ * with getRedirectResult in some environments.
  */
 import { initializeApp } from 'firebase/app'
-import {
-  getAuth,
-  initializeAuth,
-  browserLocalPersistence,
-  indexedDBLocalPersistence,
-} from 'firebase/auth'
+import { getAuth } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? '',
@@ -22,19 +18,13 @@ const firebaseConfig = {
 let appInstance = null
 let authInstance = null
 
-if (firebaseConfig.projectId && firebaseConfig.apiKey) {
+if (
+  firebaseConfig.projectId &&
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain?.trim()
+) {
   appInstance = initializeApp(firebaseConfig)
-  try {
-    authInstance = initializeAuth(appInstance, {
-      persistence: [indexedDBLocalPersistence, browserLocalPersistence],
-    })
-  } catch (e) {
-    if (e?.code === 'auth/already-initialized') {
-      authInstance = getAuth(appInstance)
-    } else {
-      throw e
-    }
-  }
+  authInstance = getAuth(appInstance)
 }
 
 export const app = appInstance
