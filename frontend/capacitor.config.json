@@ -1,0 +1,11 @@
+{
+  "appId": "com.chlapp.habitflywheel",
+  "appName": "Habit Flywheel",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

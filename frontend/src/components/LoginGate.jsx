@@ -1,12 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { colors, fonts } from '../constants/designTokens';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Full-page gate shown when Firebase is configured and user is not signed in.
- * Users must sign in before they can access Home, Onboarding, or Daily Check-In.
  */
-export function LoginGate({ onSignIn }) {
+export function LoginGate() {
+  const { signInWithGoogle, signInError, clearSignInError } = useAuth();
+  const [signingIn, setSigningIn] = useState(false);
+
+  const handleSignIn = () => {
+    clearSignInError();
+    setSigningIn(true);
+    void signInWithGoogle().finally(() => {
+      setSigningIn(false);
+    });
+  };
+
   return (
     <div
       style={{
@@ -44,7 +55,13 @@ export function LoginGate({ onSignIn }) {
             cursor: 'pointer',
           }}
         >
-          <img src="/flywheel-icon.svg" alt="" width={48} height={48} style={{ display: 'block', margin: '0 auto 24px', objectFit: 'contain' }} />
+          <img
+            src={`${import.meta.env.BASE_URL}flywheel-icon.svg`}
+            alt=""
+            width={48}
+            height={48}
+            style={{ display: 'block', margin: '0 auto 24px', objectFit: 'contain' }}
+          />
           <h1
             style={{
               fontFamily: fonts.heading,
@@ -82,20 +99,37 @@ export function LoginGate({ onSignIn }) {
         >
           Learn how it works →
         </Link>
+        {signInError ? (
+          <p
+            role="alert"
+            style={{
+              color: '#b42318',
+              fontSize: 14,
+              margin: '0 0 16px 0',
+              lineHeight: 1.45,
+              textAlign: 'left',
+            }}
+          >
+            {signInError}
+          </p>
+        ) : null}
         <button
           type="button"
-          onClick={onSignIn}
+          disabled={signingIn}
+          onClick={handleSignIn}
           style={{
             width: '100%',
             padding: '14px 24px',
             borderRadius: 12,
             border: 'none',
-            background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%)`,
+            background: signingIn
+              ? `linear-gradient(135deg, ${colors.primary}aa 0%, ${colors.primaryLight}aa 100%)`
+              : `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%)`,
             color: colors.card,
             fontFamily: fonts.body,
             fontSize: 15,
             fontWeight: 600,
-            cursor: 'pointer',
+            cursor: signingIn ? 'wait' : 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -103,7 +137,7 @@ export function LoginGate({ onSignIn }) {
           }}
         >
           <span style={{ fontSize: 20 }}>G</span>
-          Sign in with Google
+          {signingIn ? 'Opening Google…' : 'Sign in with Google'}
         </button>
       </div>
     </div>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Habit Flywheel</string>
+    <string name="title_activity_main">Habit Flywheel</string>
+    <string name="package_name">com.chlapp.habitflywheel</string>
+    <string name="custom_url_scheme">com.chlapp.habitflywheel</string>
+</resources>

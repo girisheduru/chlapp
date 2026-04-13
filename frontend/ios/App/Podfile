@@ -1,0 +1,53 @@
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+platform :ios, '14.0'
+use_frameworks!
+
+# workaround to avoid Xcode caching of Pods that requires
+# Product -> Clean Build Folder after new Cordova plugins installed
+# Requires CocoaPods 1.6 or newer
+install! 'cocoapods', :disable_input_output_paths => true
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
+end
+
+target 'App' do
+  capacitor_pods
+  # Add your Pods here
+end
+
+post_install do |installer|
+  assertDeploymentTarget(installer)
+
+  # Xcode 15/16: module verifier + quoted-include warnings break Capacitor/Cordova pod frameworks
+  # (see ionic-team/capacitor#6475 — "module 'Cordova' not found", VerifyModule failures).
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
+      config.build_settings['ENABLE_MODULE_VERIFIER'] = 'NO'
+      config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+      if target.name == 'CapacitorCordova'
+        config.build_settings['OTHER_CFLAGS'] = '$(inherited) -Wno-deprecated-declarations'
+      end
+    end
+  end
+
+  # App target: disable module verifier if Xcode "recommended settings" turned it on (breaks CocoaPods).
+  installer.aggregate_targets.each do |aggregate_target|
+    aggregate_target.user_project.native_targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['ENABLE_MODULE_VERIFIER'] = 'NO'
+        # Xcode 15+: User Script Sandboxing breaks "[CP] Embed Pods Frameworks" (cannot read Pods-*.sh).
+        config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+      end
+      target.build_phases.each do |phase|
+        next unless phase.respond_to?(:name) && phase.name == '[CP] Embed Pods Frameworks'
+        phase.always_out_of_date = 'YES' if phase.respond_to?(:always_out_of_date=)
+      end
+    end
+    aggregate_target.user_project.save
+  end
+end

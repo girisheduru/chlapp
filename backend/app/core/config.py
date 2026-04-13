@@ -11,6 +11,10 @@ def _default_cors_origins() -> list[str]:
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        # Capacitor WebView origins (iOS/Android native shells)
+        "http://localhost",
+        "https://localhost",
+        "capacitor://localhost",
         "https://chlapp.vercel.app",
         "https://chlapp-production.vercel.app",
     ]

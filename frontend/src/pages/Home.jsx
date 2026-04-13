@@ -109,15 +109,30 @@ export default function Home() {
     }
   }, []);
 
-  // Wait for token before fetching — avoids 401 on first load (Firebase restores session async)
+  // Wait for auth, then load habits. Always call loadHabits (or clear loading): if we only
+  // fetched when getIdToken() was truthy, a null/hanging token left loading=true forever (seen on Capacitor).
   useEffect(() => {
-    if (!authLoading && authUser?.uid) {
-      let cancelled = false;
-      getIdToken().then((token) => {
-        if (!cancelled && token) loadHabits();
-      });
-      return () => { cancelled = true; };
+    if (authLoading) return;
+    if (!authUser?.uid) {
+      setLoading(false);
+      return;
     }
+    let cancelled = false;
+    const tokenMs = 12000;
+    const tokenPromise = getIdToken();
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('getIdToken timeout')), tokenMs)
+    );
+    Promise.race([tokenPromise, timeout])
+      .then(() => {
+        if (!cancelled) loadHabits();
+      })
+      .catch(() => {
+        if (!cancelled) loadHabits();
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [authLoading, authUser?.uid, loadHabits, getIdToken]);
 
   const currentHour = new Date().getHours();

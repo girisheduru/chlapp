@@ -3,28 +3,36 @@
  * When setApiTokenGetter is set (by AuthProvider), requests include Authorization: Bearer <token>.
  *
  * Local development: Uses relative URL '/api/v1' which Vite proxies to http://localhost:8000
- * Production (Vercel): Requires VITE_API_URL env var pointing to your backend (e.g. https://your-api.railway.app)
+ * Production / Capacitor: VITE_API_URL is embedded at `vite build` time (from frontend/.env).
  */
+
+import { Capacitor } from '@capacitor/core'
 
 // Determine API base URL based on environment
 const getApiBaseUrl = () => {
-  // If VITE_API_URL is set (production), use it
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL.replace(/\/$/, '') + '/api/v1';
+  const fromEnv = (import.meta.env.VITE_API_URL || '').trim()
+
+  // If VITE_API_URL is set at build time, use it (Vercel, Capacitor, preview)
+  if (fromEnv) {
+    return fromEnv.replace(/\/$/, '') + '/api/v1'
   }
-  
+
   // In development, use relative URL (Vite proxy handles it)
   if (import.meta.env.DEV) {
-    return '/api/v1';
+    return '/api/v1'
   }
-  
-  // Production without VITE_API_URL - this won't work, warn the user
+
+  // Production bundle without VITE_API_URL (stale native build or missing .env during vite build)
+  const nativeHint = Capacitor.isNativePlatform()
+    ? ' Add VITE_API_URL to frontend/.env, then run: npm run build:mobile:ios (or build:mobile). '
+    : ' '
   console.error(
-    '[api.js] VITE_API_URL is not set. API calls will fail with 404/405. ' +
-      'Set VITE_API_URL in Vercel → Settings → Environment Variables to your backend URL (e.g. https://your-api.railway.app).'
-  );
-  return '/api/v1'; // Will fail, but at least shows the error
-};
+    '[api.js] VITE_API_URL is not set. API calls will fail.' +
+      nativeHint +
+      'For web hosting, set VITE_API_URL in Vercel → Environment Variables (e.g. https://your-api.railway.app).'
+  )
+  return '/api/v1'
+}
 
 const API_BASE_URL = getApiBaseUrl();
 
